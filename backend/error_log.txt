@@ -1,0 +1,38 @@
+Traceback (most recent call last):
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\django_api\views.py", line 38, in analyze_alert
+    final_state = await workflow.run(alert_text)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\graph\workflow.py", line 117, in run
+    final_state = await self.graph.ainvoke(initial_state)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\pregel\main.py", line 3479, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\pregel\main.py", line 3128, in astream
+    async for _ in runner.atick(
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\pregel\_runner.py", line 304, in atick
+    await arun_with_retry(
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\pregel\_retry.py", line 242, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 711, in ainvoke
+    input = await step.ainvoke(input, config)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 473, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\graph\_branch.py", line 189, in _aroute
+    result = await self.path.ainvoke(value, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langgraph\_internal\_runnable.py", line 464, in ainvoke
+    ret = await asyncio.create_task(coro, context=context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\OneDrive\Documents\Projects\Agentic RAG for SOC\backend\venv\Lib\site-packages\langchain_core\runnables\config.py", line 636, in run_in_executor
+    return await asyncio.get_running_loop().run_in_executor(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 829, in run_in_executor
+    executor.submit(func, *args), loop=self)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Hello\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 167, in submit
+    raise RuntimeError('cannot schedule new futures after shutdown')
+RuntimeError: cannot schedule new futures after shutdown
+During task with name 'evaluator' and id '7b46f2f4-1d9d-3023-dd5a-960df2cc046e'

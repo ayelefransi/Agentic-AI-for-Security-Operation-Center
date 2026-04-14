@@ -1,0 +1,22 @@
+[
+  {"alert": "5 failed logins from admin on 192.168.1.50 to 10.0.0.5", "expected_classification": "True Positive"},
+  {"alert": "admin logged in from 192.168.1.50 to 10.0.0.5 after 1 attempt", "expected_classification": "False Positive"},
+  {"alert": "User bwayne transferred 5GB of data to 198.51.100.22", "expected_classification": "False Positive"},
+  {"alert": "Malware invoice_update.exe detected on jdoe machine", "expected_classification": "True Positive"},
+  {"alert": "Port scan detected from 203.0.113.44 targeting multiple ports", "expected_classification": "Needs Investigation"},
+  {"alert": "Unusual internal traffic from 10.0.0.55 to 10.0.0.60 on port 445.", "expected_classification": "Needs Investigation"},
+  {"alert": "User jsmith logged in from a new IP outside the country.", "expected_classification": "Needs Investigation"},
+  {"alert": "bwayne transferred 15GB to 198.51.100.22", "expected_classification": "True Positive"},
+  {"alert": "SQL injection payload detected in web logs.", "expected_classification": "Needs Investigation"},
+  {"alert": "DDoS attempt blocked by firewall on port 443.", "expected_classification": "False Positive"},
+  {"alert": "Employee downloaded 500MB of marketing materials from internal server.", "expected_classification": "False Positive"},
+  {"alert": "Admin account accessed outside of normal business hours.", "expected_classification": "Needs Investigation"},
+  {"alert": "Ransomware extensions detected on shared drive.", "expected_classification": "True Positive"},
+  {"alert": "Known malicious IP contacted by internal host.", "expected_classification": "True Positive"},
+  {"alert": "Failed login attempt for user 'guest' 1 time.", "expected_classification": "False Positive"},
+  {"alert": "Multiple password resets requested for CEO account.", "expected_classification": "True Positive"},
+  {"alert": "Unauthorized device connected to secure WiFi.", "expected_classification": "Needs Investigation"},
+  {"alert": "VPN connection from suspended user account.", "expected_classification": "True Positive"},
+  {"alert": "High CPU utilization on database server.", "expected_classification": "Needs Investigation"},
+  {"alert": "Data Exfiltration 2GB to unknown IP 8.8.8.8", "expected_classification": "True Positive"}
+]

@@ -1,0 +1,43 @@
+[
+  {
+    "timestamp": "2023-11-01T08:00:00Z",
+    "event_type": "Failed Login",
+    "user": "admin",
+    "source_ip": "192.168.1.50",
+    "destination_ip": "10.0.0.5",
+    "attempts": 5,
+    "status": "Failure"
+  },
+  {
+    "timestamp": "2023-11-01T08:05:00Z",
+    "event_type": "Successful Login",
+    "user": "admin",
+    "source_ip": "192.168.1.50",
+    "destination_ip": "10.0.0.5",
+    "attempts": 1,
+    "status": "Success"
+  },
+  {
+    "timestamp": "2023-11-02T14:22:00Z",
+    "event_type": "Malware Detected",
+    "user": "jdoe",
+    "filename": "invoice_update.exe",
+    "file_hash": "e99a18c428cb38d5f260853678922e03",
+    "status": "Quarantined"
+  },
+  {
+    "timestamp": "2023-11-02T23:15:00Z",
+    "event_type": "Port Scan",
+    "source_ip": "203.0.113.44",
+    "target_ports": "22,80,443,3389",
+    "status": "Blocked"
+  },
+  {
+    "timestamp": "2023-11-03T02:00:00Z",
+    "event_type": "Data Exfiltration",
+    "user": "bwayne",
+    "bytes_transferred": 5000000000,
+    "destination_ip": "198.51.100.22",
+    "status": "Allowed"
+  }
+]

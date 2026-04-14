@@ -1,0 +1,317 @@
+Access Control (AC)
+1. NIST 800-53 - AC-1:
+
+Account Management
+All user accounts must be reviewed every 30 days. Inactive accounts for more than 45 days must be disabled.
+
+2. NIST 800-53 - AC-2:
+
+Privileged Account Use
+Administrative accounts must only be used from approved devices within IP range 10.0.0.0/8.
+
+3. NIST 800-53 - AC-3:
+
+Session Timeout
+User sessions must automatically terminate after 15 minutes of inactivity.
+
+4. NIST 800-53 - AC-4:
+
+Concurrent Sessions
+Users are limited to 2 simultaneous active sessions.
+
+5. NIST 800-53 - AC-5:
+
+Remote Access
+Remote access must require multi-factor authentication (MFA).
+
+6. NIST 800-53 - AC-6:
+
+Least Privilege
+Users must only have access necessary for their role.
+
+7. NIST 800-53 - AC-7:
+
+Failed Login Monitoring
+More than 5 failed login attempts within 10 minutes must trigger an alert.
+
+8. NIST 800-53 - AC-8:
+
+Account Lockout
+Accounts must be locked after 5 consecutive failed login attempts.
+
+9. NIST 800-53 - AC-9:
+
+Password Complexity
+Passwords must contain at least 12 characters including uppercase, lowercase, and symbols.
+
+10. NIST 800-53 - AC-10:
+
+Password Expiry
+Passwords must expire every 90 days.
+
+Authentication & Identity (IA)
+11. NIST 800-53 - IA-1:
+
+MFA Enforcement
+All privileged users must use MFA.
+
+12. NIST 800-53 - IA-2:
+
+Service Accounts
+Service accounts must not allow interactive login.
+
+13. NIST 800-53 - IA-3:
+
+Credential Storage
+Passwords must be stored using salted hashing.
+
+14. NIST 800-53 - IA-4:
+
+Account Verification
+New accounts must be verified via email confirmation.
+
+15. NIST 800-53 - IA-5:
+
+Biometric Use
+Biometric authentication must be supplemented with a secondary factor.
+
+Audit & Logging (AU)
+16. NIST 800-53 - AU-1:
+
+Log Retention
+Logs must be retained for at least 90 days.
+
+17. NIST 800-53 - AU-2:
+
+Log Integrity
+Logs must be protected against unauthorized modification.
+
+18. NIST 800-53 - AU-3:
+
+Event Logging
+All authentication attempts must be logged.
+
+19. NIST 800-53 - AU-4:
+
+Central Logging
+All logs must be forwarded to a centralized SIEM.
+
+20. NIST 800-53 - AU-5:
+
+Log Monitoring
+Security logs must be reviewed daily.
+
+Incident Response (IR)
+21. NIST 800-53 - IR-1:
+
+Incident Detection
+Any anomaly in login behavior must trigger investigation.
+
+22. NIST 800-53 - IR-2:
+
+Incident Reporting
+All incidents must be reported within 1 hour.
+
+23. NIST 800-53 - IR-3:
+
+Malware Detection
+Detected malware must trigger endpoint isolation.
+
+24. NIST 800-53 - IR-4:
+
+Phishing Response
+Phishing emails must be reported and blocked immediately.
+
+25. NIST 800-53 - IR-5:
+
+Escalation
+Critical incidents must be escalated to SOC Tier 2.
+
+Network Security (SC)
+26. NIST 800-53 - SC-1:
+
+Firewall Rules
+All inbound traffic must be denied by default.
+
+27. NIST 800-53 - SC-2:
+
+Port Restrictions
+Only ports 80 and 443 are allowed externally.
+
+28. NIST 800-53 - SC-3:
+
+VPN Use
+All remote connections must go through VPN.
+
+29. NIST 800-53 - SC-4:
+
+Internal Traffic
+Internal communication must be encrypted.
+
+30. NIST 800-53 - SC-5:
+
+DNS Monitoring
+DNS queries must be logged and analyzed.
+
+Data Protection (DLP)
+31. DLP-02:
+
+Sensitive Data Transfer
+Any transfer of sensitive data >500MB externally must be flagged.
+
+32. DLP-03:
+
+USB Usage
+USB storage devices must be blocked by default.
+
+33. DLP-04:
+
+Email Attachments
+Attachments >25MB must be scanned before delivery.
+
+34. DLP-05:
+
+Cloud Upload
+Uploading confidential files to public cloud is prohibited.
+
+35. DLP-06:
+
+Encryption
+All sensitive data must be encrypted at rest.
+
+Endpoint Security
+36. EP-01:
+
+Antivirus
+All endpoints must run updated antivirus software.
+
+37. EP-02:
+
+Patch Management
+Critical patches must be applied within 7 days.
+
+38. EP-03:
+
+Device Control
+Unauthorized devices must be blocked.
+
+39. EP-04:
+
+Screen Lock
+Systems must lock after 10 minutes idle.
+
+40. EP-05:
+
+Software Install
+Only approved software may be installed.
+
+Threat Detection
+41. TD-01:
+
+Brute Force Detection
+More than 10 login attempts must trigger alert.
+
+42. TD-02:
+
+Anomaly Detection
+Login from new country must trigger alert.
+
+43. TD-03:
+
+Privilege Escalation
+Any privilege escalation must be logged.
+
+44. TD-04:
+
+Suspicious Process
+Unknown processes must be flagged.
+
+45. TD-05:
+
+Lateral Movement
+Internal scanning behavior must be detected.
+
+Cloud Security
+46. CS-01:
+
+IAM Policies
+Cloud roles must follow least privilege.
+
+47. CS-02:
+
+Public Buckets
+Public storage buckets must be flagged.
+
+48. CS-03:
+
+API Keys
+API keys must not be hardcoded.
+
+49. CS-04:
+
+Logging
+Cloud activity must be logged.
+
+50. CS-05:
+
+Encryption
+Cloud data must be encrypted.
+
+Continue Pattern (51–100)
+
+To keep this practical and usable, here are additional condensed policies:
+
+51–60 (Network + Access)
+AC-11: Geo-block high-risk countries
+AC-12: Disable default accounts
+SC-6: Block ICMP externally
+SC-7: Segment internal networks
+SC-8: Monitor outbound traffic
+AC-13: Role-based access required
+AC-14: Temporary access expires in 24h
+SC-9: Enforce TLS 1.2+
+SC-10: Block TOR traffic
+SC-11: IDS must monitor all traffic
+61–70 (Logging + IR)
+AU-6: Log admin actions
+AU-7: Detect log tampering
+IR-6: Auto-ticket incidents
+IR-7: Notify security team instantly
+IR-8: Track incident lifecycle
+AU-8: Timestamp logs
+AU-9: Protect log storage
+IR-9: Run incident drills quarterly
+IR-10: Document all incidents
+IR-11: Root cause analysis required
+71–80 (Endpoint + Threat)
+EP-06: Disable autorun
+EP-07: Monitor registry changes
+TD-06: Detect ransomware behavior
+TD-07: Alert on unusual CPU spikes
+EP-08: Enforce disk encryption
+TD-08: Monitor command-line activity
+EP-09: Disable unused services
+TD-09: Detect data exfiltration
+EP-10: Block unsigned drivers
+TD-10: Detect beaconing traffic
+81–90 (Cloud + Data)
+CS-06: Rotate keys every 90 days
+CS-07: Restrict admin APIs
+DLP-07: Mask sensitive fields
+DLP-08: Monitor database queries
+CS-08: Enable audit logs
+DLP-09: Prevent screenshot leaks
+CS-09: Limit cross-region access
+DLP-10: Track file downloads
+CS-10: Enforce IAM reviews
+DLP-11: Block unauthorized sharing
+91–100 (Advanced SOC)
+SOC-01: Correlate multi-source alerts
+SOC-02: Risk scoring for alerts
+SOC-03: Auto-close false positives
+SOC-04: Prioritize critical alerts
+SOC-05: Enrich alerts with threat intel
+SOC-06: Map alerts to MITRE ATT&CK
+SOC-07: Detect insider threats
+SOC-08: Monitor privileged sessions
+SOC-09: Detect credential stuffing
