@@ -2,16 +2,16 @@ from typing import List, Dict, Any
 from qdrant_client import QdrantClient
 from langchain_qdrant import QdrantVectorStore
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
 
 from config.settings import settings
 
 class SOCVectorStore:
     def __init__(self):
-        # We use a lightweight local embedding model to avoid extra API costs,
-        # but this could easily be swapped to GoogleGenerativeAIEmbeddings.
-        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        # We use a lightweight Google Generative AI Embeddings model to avoid Lambda size limits
+        # with Vercel serverless functions.
+        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
         self.client = QdrantClient(path=settings.qdrant_path)
         self.collection_name = settings.qdrant_collection_name
         
@@ -19,7 +19,7 @@ class SOCVectorStore:
             from qdrant_client.http.models import Distance, VectorParams
             self.client.create_collection(
                 collection_name=self.collection_name,
-                vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+                vectors_config=VectorParams(size=768, distance=Distance.COSINE),
             )
             
         self.vector_store = QdrantVectorStore(

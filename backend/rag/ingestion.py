@@ -1,7 +1,7 @@
 import os
 import json
 from pathlib import Path
-from langchain_community.document_loaders import UnstructuredPDFLoader, TextLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rag.vector_store import SOCVectorStore
@@ -15,7 +15,7 @@ class DataIngestionPipeline:
         self.vector_store = SOCVectorStore()
 
     def load_pdf(self, file_path: str) -> list[Document]:
-        loader = UnstructuredPDFLoader(file_path)
+        loader = PyPDFLoader(file_path)
         docs = loader.load()
         for doc in docs:
             doc.metadata["document_type"] = "policy"
