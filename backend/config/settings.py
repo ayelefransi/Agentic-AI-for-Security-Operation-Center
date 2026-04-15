@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-3.1-flash-lite-preview"
   
     # Vector DB
-    qdrant_path: str = "./qdrant_data"
+    # Use /tmp since Vercel Serverless Functions have a read-only filesystem except for /tmp
+    qdrant_path: str = "/tmp/qdrant_data"
     qdrant_collection_name: str = "soc_knowledge"
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
