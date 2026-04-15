@@ -33,7 +33,7 @@ export default function Home() {
     setResult(null);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const response = await fetch(`${apiUrl}/api/analyze-alert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

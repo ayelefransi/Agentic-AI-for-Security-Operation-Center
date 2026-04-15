@@ -26,7 +26,7 @@ except Exception as e:
     logger.error(f"Failed to initialize workflow: {e}")
     workflow = None
 
-@app.post("/analyze-alert", response_model=AlertResponse)
+@app.post("/api/analyze-alert", response_model=AlertResponse)
 async def analyze_alert(request: AlertRequest):
     if not workflow:
         raise HTTPException(status_code=500, detail="Workflow initialization failed.")
@@ -57,6 +57,6 @@ async def analyze_alert(request: AlertRequest):
         logger.error(f"Error during alert analysis: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {"status": "healthy", "model": settings.llm_model}
