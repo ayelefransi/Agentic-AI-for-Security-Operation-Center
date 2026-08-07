@@ -1,116 +1,205 @@
 .topbar {
-  height: 72px;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  height: 64px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
+  padding: 0 24px;
   position: sticky;
   top: 0;
   z-index: 40;
-  box-shadow: 0 4px 20px -10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.03);
+  gap: 16px;
 }
 
-.statsContainer {
+/* ── KPI Chips ───────────────────────────────────────────────────────────── */
+
+.kpiRow {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.statItem {
+.kpiRow::-webkit-scrollbar {
+  display: none;
+}
+
+.kpiChip {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  cursor: default;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+  min-height: 40px;
 }
 
-.statIcon {
-  color: var(--accent-green);
+.kpiChip:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
 }
 
-.statLabel {
-  font-size: 0.85rem;
-  color: var(--text-muted);
+.kpiIcon {
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.kpiInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.kpiLabel {
+  font-size: 0.65rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.2;
 }
 
-.statValue {
+.kpiValue {
+  font-size: var(--font-size-sm);
   font-weight: 700;
-  color: var(--text-main);
-  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
-.divider {
-  width: 1px;
-  height: 24px;
-  background: rgba(0, 0, 0, 0.1);
-}
+/* ── Actions ─────────────────────────────────────────────────────────────── */
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 8px;
+  flex-shrink: 0;
 }
+
+/* ── Command Palette Trigger ─────────────────────────────────────────────── */
+
+.cmdKButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  min-height: 36px;
+}
+
+.cmdKButton:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text-primary);
+  border-color: var(--glass-border-hover) !important;
+}
+
+.cmdKLabel {
+  color: var(--text-muted);
+}
+
+.kbd {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 2px 5px;
+  background: var(--glass-bg-hover);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+/* ── Icon Button ─────────────────────────────────────────────────────────── */
 
 .iconButton {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  transition: all var(--duration-fast) ease;
 }
 
 .iconButton:hover {
-  background: rgba(255, 255, 255, 0.6);
-  color: var(--text-main);
+  background: var(--glass-bg-hover);
+  color: var(--text-primary);
 }
+
+/* ── Notification Badge ──────────────────────────────────────────────────── */
 
 .badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background: var(--danger);
+  top: 2px;
+  right: 2px;
+  background: var(--color-critical);
   color: white;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  width: 16px;
+  min-width: 16px;
   height: 16px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 3px;
+  font-variant-numeric: tabular-nums;
+  transition: transform var(--duration-fast) ease;
 }
+
+.badgePulse {
+  animation: badgePing 1s ease-out;
+}
+
+@keyframes badgePing {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--color-critical-glow); }
+  50% { transform: scale(1.2); box-shadow: 0 0 0 6px transparent; }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ── User Profile ────────────────────────────────────────────────────────── */
 
 .userProfile {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 12px 6px 6px;
-  border-radius: 30px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-fast) ease;
 }
 
 .userProfile:hover {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--glass-bg-hover);
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(26, 127, 69, 0.1);
-  color: var(--accent-green);
+  background: var(--accent-primary-ghost);
+  color: var(--accent-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -118,6 +207,27 @@
 
 .userName {
   font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text-main);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 12px;
+  }
+
+  .cmdKButton .cmdKLabel,
+  .cmdKButton .kbd {
+    display: none;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .kpiChip .kpiLabel {
+    display: none;
+  }
 }

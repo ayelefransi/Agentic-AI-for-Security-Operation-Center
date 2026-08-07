@@ -1,71 +1,60 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  height: 100%;
+  gap: 24px;
+  height: calc(100vh - 128px);
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  flex-shrink: 0;
 }
 
 .title {
-  font-size: 2rem;
-  margin-bottom: 8px;
+  font-size: var(--font-size-2xl);
+  margin-bottom: 4px;
 }
 
 .subtitle {
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
 }
 
 .legend {
   display: flex;
-  align-items: center;
   gap: 16px;
-  background: rgba(255, 255, 255, 0.5);
-  padding: 12px 24px;
-  border-radius: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: var(--glass-bg);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border);
 }
 
 .legendItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  gap: 6px;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 .legendBox {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--glass-border);
 }
 
 .matrixWrapper {
-  overflow-x: auto;
-  padding-bottom: 24px;
-  /* Custom scrollbar for matrix */
-  scrollbar-width: thin;
-  scrollbar-color: var(--accent-green) rgba(0,0,0,0.05);
-}
-
-.matrixWrapper::-webkit-scrollbar {
-  height: 8px;
-}
-
-.matrixWrapper::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.05);
-  border-radius: 4px;
-}
-
-.matrixWrapper::-webkit-scrollbar-thumb {
-  background-color: var(--accent-green);
-  border-radius: 4px;
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  padding: 24px;
+  box-shadow: var(--glass-shadow);
 }
 
 .matrix {
@@ -75,7 +64,7 @@
 }
 
 .tacticColumn {
-  width: 260px;
+  width: 280px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -85,19 +74,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1a1f1c;
-  color: white;
-  padding: 12px 16px;
-  border-radius: 8px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
-  font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  color: var(--text-primary);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--glass-border);
+  position: sticky;
+  top: 0;
+  background: var(--glass-bg);
+  z-index: 10;
+  backdrop-filter: blur(12px);
 }
 
 .tacticIcon {
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 .techniqueList {
@@ -109,45 +101,49 @@
 .techniqueCell {
   position: relative;
   overflow: hidden;
-  padding: 16px;
-  min-height: 80px;
+  padding: 0 !important; /* override GlassCard default */
+  cursor: pointer;
+  min-height: 48px;
 }
 
 .heatBg {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
+  opacity: 0.8;
   z-index: 0;
-  transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .techContent {
   position: relative;
   z-index: 1;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  height: 100%;
+  align-items: center;
+  gap: 12px;
 }
 
 .techName {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-main);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   line-height: 1.3;
-  padding-right: 12px;
 }
 
 .techCount {
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--text-main);
-  font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  background: var(--glass-bg-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.skeletonCell {
+  min-height: 48px;
+  background: linear-gradient(90deg, var(--glass-bg) 25%, var(--glass-bg-hover) 50%, var(--glass-bg) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite linear;
 }
 
 .emptyState {
@@ -155,20 +151,26 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 64px;
+  flex: 1;
   text-align: center;
+  gap: 12px;
   color: var(--text-muted);
-  gap: 16px;
-  margin-top: 32px;
 }
 
-.emptyIcon {
-  opacity: 0.3;
+.emptyIconWrap {
+  padding: 24px;
+  border-radius: 50%;
+  background: var(--accent-primary-ghost);
+  color: var(--accent-primary);
+  margin-bottom: 8px;
 }
 
-.loadingState {
-  text-align: center;
-  padding: 64px;
-  color: var(--text-muted);
-  font-weight: 600;
+.emptyState h3 {
+  color: var(--text-secondary);
+  font-size: var(--font-size-lg);
+}
+
+.emptyState p {
+  font-size: var(--font-size-sm);
+  max-width: 300px;
 }

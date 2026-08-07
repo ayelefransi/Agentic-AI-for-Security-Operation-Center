@@ -1,0 +1,60 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  position: relative;
+  backdrop-filter: blur(8px);
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.label {
+  line-height: 1;
+}
+
+/* ── Severity Variants ───────────────────────────────────────────────────── */
+
+.critical {
+  background: var(--color-critical-bg);
+  color: var(--color-critical);
+  border: 1px solid var(--color-critical-border);
+  box-shadow: 0 0 20px var(--color-critical-glow);
+}
+
+.high {
+  background: var(--color-high-bg);
+  color: var(--color-high);
+  border: 1px solid var(--color-high-border);
+}
+
+.medium {
+  background: var(--color-medium-bg);
+  color: var(--color-medium);
+  border: 1px solid var(--color-medium-border);
+}
+
+.low {
+  background: var(--color-low-bg);
+  color: var(--color-low);
+  border: 1px solid var(--color-low-border);
+}
+
+/* ── Pulse Ring (Critical only) ──────────────────────────────────────────── */
+
+.pulseRing {
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--color-critical);
+  animation: pulseRing 2s ease-out infinite;
+  pointer-events: none;
+}

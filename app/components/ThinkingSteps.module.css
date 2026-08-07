@@ -1,0 +1,81 @@
+.container {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-primary);
+  margin-bottom: 14px;
+}
+
+.headerIcon {
+  animation: spin 1.5s linear infinite;
+}
+
+.stepList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: all var(--duration-normal) ease;
+}
+
+.stepIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.stepLabel {
+  white-space: nowrap;
+}
+
+/* States */
+
+.pending {
+  color: var(--text-muted);
+}
+
+.pending .stepIcon {
+  opacity: 0.3;
+}
+
+.active {
+  color: var(--accent-primary);
+}
+
+.active .stepIcon {
+  color: var(--accent-primary);
+}
+
+.done {
+  color: var(--text-secondary);
+}
+
+.done .stepIcon {
+  color: var(--accent-primary);
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}

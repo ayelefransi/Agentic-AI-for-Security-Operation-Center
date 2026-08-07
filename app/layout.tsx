@@ -1,11 +1,20 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import Sidebar from './components/Sidebar';
-import TopBar from './components/TopBar';
+import { ThemeProvider } from './contexts/ThemeContext';
+import LayoutShell from './components/LayoutShell';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'NEXUS Command | SOC Platform',
@@ -18,17 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetbrainsMono.variable}`}>
-        <div className="app-layout">
-          <Sidebar />
-          <div className="main-content">
-            <TopBar />
-            <div className="page-content">
-              {children}
-            </div>
-          </div>
-        </div>
+        <ThemeProvider>
+          <LayoutShell>{children}</LayoutShell>
+        </ThemeProvider>
       </body>
     </html>
   );

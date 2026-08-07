@@ -63,23 +63,35 @@ export default function IncidentsPage() {
           />
         </div>
         <button className={styles.filterButton}>
-          <Filter size={18} />
+          <Filter size={16} />
           Filters
         </button>
       </div>
 
       <div className={styles.incidentList}>
         {loading ? (
-          <div className={styles.loadingState}>Loading incidents...</div>
+          <>
+            {[1, 2, 3, 4].map(i => (
+              <GlassCard key={i} delay={0.1 + (i * 0.05)} className={`${styles.incidentCard} ${styles.skeletonCard}`}>
+                 <div className={styles.cardLeft}>
+                   <div className={`${styles.skeletonTitle} skeleton`} />
+                   <div className={`${styles.skeletonDesc} skeleton`} />
+                   <div className={`${styles.skeletonDesc} skeleton`} style={{ width: '60%' }} />
+                 </div>
+              </GlassCard>
+            ))}
+          </>
         ) : filteredIncidents.length === 0 ? (
           <GlassCard className={styles.emptyState}>
-            <ShieldAlert size={48} className={styles.emptyIcon} />
+            <div className={styles.emptyIconWrap}>
+              <ShieldAlert size={48} className={styles.emptyIcon} />
+            </div>
             <h3>No Incidents Found</h3>
             <p>Try adjusting your search filters.</p>
           </GlassCard>
         ) : (
           filteredIncidents.map((incident, i) => (
-            <GlassCard key={incident.id} delay={i * 0.05} hoverEffect className={styles.incidentCard}>
+            <GlassCard key={incident.id} delay={0.1 + (i * 0.05)} hoverEffect className={styles.incidentCard}>
               <div className={styles.cardLeft}>
                 <div className={styles.cardHeader}>
                   <SeverityBadge severity={incident.triage?.severity || 'Low'} />

@@ -54,10 +54,10 @@ export default function MitreHeatmap() {
   const allTactics = Array.from(new Set([...coreTactics, ...Object.keys(data)]));
 
   const getHeatColor = (count: number) => {
-    if (count === 0) return 'rgba(0,0,0,0.02)';
-    if (count <= 2) return 'rgba(245, 158, 11, 0.3)'; // Warning yellow
-    if (count <= 5) return 'rgba(249, 115, 22, 0.4)'; // Orange
-    return 'rgba(239, 68, 68, 0.6)'; // Danger red
+    if (count === 0) return 'transparent';
+    if (count <= 2) return 'var(--color-medium-bg)';
+    if (count <= 5) return 'var(--color-high-bg)';
+    return 'var(--color-critical-bg)';
   };
 
   return (
@@ -69,25 +69,43 @@ export default function MitreHeatmap() {
         </div>
         <div className={styles.legend}>
           <div className={styles.legendItem}>
-            <div className={styles.legendBox} style={{ background: getHeatColor(0) }} /> 0
+            <div className={styles.legendBox} style={{ background: 'var(--glass-bg-hover)' }} /> 0
           </div>
           <div className={styles.legendItem}>
-            <div className={styles.legendBox} style={{ background: getHeatColor(1) }} /> 1-2
+            <div className={styles.legendBox} style={{ background: 'var(--color-medium-bg)' }} /> 1-2
           </div>
           <div className={styles.legendItem}>
-            <div className={styles.legendBox} style={{ background: getHeatColor(3) }} /> 3-5
+            <div className={styles.legendBox} style={{ background: 'var(--color-high-bg)' }} /> 3-5
           </div>
           <div className={styles.legendItem}>
-            <div className={styles.legendBox} style={{ background: getHeatColor(6) }} /> 6+
+            <div className={styles.legendBox} style={{ background: 'var(--color-critical-bg)' }} /> 6+
           </div>
         </div>
       </header>
 
       {loading ? (
-        <div className={styles.loadingState}>Loading mapping matrix...</div>
+        <div className={styles.matrixWrapper}>
+          <div className={styles.matrix}>
+            {coreTactics.slice(0, 6).map((tactic, i) => (
+              <div key={tactic} className={styles.tacticColumn}>
+                <div className={styles.tacticHeader}>
+                  <Layers size={14} className={styles.tacticIcon} />
+                  {tactic}
+                </div>
+                <div className={styles.techniqueList}>
+                  {[1, 2, 3].map(j => (
+                    <GlassCard key={j} className={styles.skeletonCell} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : Object.keys(data).length === 0 ? (
         <GlassCard className={styles.emptyState}>
-          <Hexagon size={48} className={styles.emptyIcon} />
+          <div className={styles.emptyIconWrap}>
+            <Hexagon size={48} className={styles.emptyIcon} />
+          </div>
           <h3>No Data Available</h3>
           <p>The system has not mapped any techniques yet. Ingest alerts to populate this matrix.</p>
         </GlassCard>
