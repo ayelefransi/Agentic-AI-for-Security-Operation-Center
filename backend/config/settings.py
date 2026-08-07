@@ -1,9 +1,4 @@
-import google.generativeai as genai
 import os
-
-# Note: You must configure the API key before listing models
-# genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
-# print([m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods])
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -11,16 +6,21 @@ class Settings(BaseSettings):
     app_name: str = "Agentic RAG for SOC"
     debug: bool = True
     
-    # LLM Settings
-    google_api_key: str = "dummy_key"
-    llm_model: str = "gemini-3.1-flash-lite-preview"
+    # Core Agent LLM
+    groq_api_key: str = "dummy_key"
+    llm_model: str = "llama3-8b-8192"
   
+    # Threat Intel API Keys (Optional - gracefully falls back to DemoGateway)
+    virustotal_api_key: str = ""
+    abuseipdb_api_key: str = ""
+    alienvault_api_key: str = ""
+    
     # Vector DB
     # Use /tmp since Vercel Serverless Functions have a read-only filesystem except for /tmp
     qdrant_path: str = "/tmp/qdrant_data"
     qdrant_collection_name: str = "soc_knowledge"
     
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()
 

@@ -1,0 +1,107 @@
+[
+  {
+    "id": "T1110",
+    "name": "Brute Force",
+    "tactic": "Credential Access",
+    "description": "Adversaries may use brute force techniques to gain access to accounts when passwords are unknown or when password hashes are obtained.",
+    "keywords": ["brute force", "failed login", "password spray", "credential stuffing", "multiple failed"]
+  },
+  {
+    "id": "T1078",
+    "name": "Valid Accounts",
+    "tactic": "Defense Evasion",
+    "description": "Adversaries may obtain and abuse credentials of existing accounts as a means of gaining Initial Access, Persistence, Privilege Escalation, or Defense Evasion.",
+    "keywords": ["valid account", "compromised credential", "stolen credential", "legitimate account", "anomalous login"]
+  },
+  {
+    "id": "T1566",
+    "name": "Phishing",
+    "tactic": "Initial Access",
+    "description": "Adversaries may send phishing messages to gain access to victim systems. All forms of phishing are electronically delivered social engineering.",
+    "keywords": ["phishing", "spear phishing", "malicious email", "suspicious attachment", "social engineering"]
+  },
+  {
+    "id": "T1566.001",
+    "name": "Spearphishing Attachment",
+    "tactic": "Initial Access",
+    "description": "Adversaries may send spearphishing emails with a malicious attachment in an attempt to gain access to victim systems.",
+    "keywords": ["malicious attachment", "infected file", "macro", "document exploit", ".exe attachment"]
+  },
+  {
+    "id": "T1059",
+    "name": "Command and Scripting Interpreter",
+    "tactic": "Execution",
+    "description": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries.",
+    "keywords": ["powershell", "cmd.exe", "bash", "script execution", "command line", "wscript", "cscript"]
+  },
+  {
+    "id": "T1059.001",
+    "name": "PowerShell",
+    "tactic": "Execution",
+    "description": "Adversaries may abuse PowerShell commands and scripts for execution.",
+    "keywords": ["powershell", "invoke-expression", "encodedcommand", "iex", "bypass"]
+  },
+  {
+    "id": "T1486",
+    "name": "Data Encrypted for Impact",
+    "tactic": "Impact",
+    "description": "Adversaries may encrypt data on target systems or on large numbers of systems in a network to interrupt availability to system and network resources.",
+    "keywords": ["ransomware", "encryption", "file encrypted", "ransom note", "crypto locker"]
+  },
+  {
+    "id": "T1071",
+    "name": "Application Layer Protocol",
+    "tactic": "Command and Control",
+    "description": "Adversaries may communicate using OSI application layer protocols to avoid detection/network filtering by blending in with existing traffic.",
+    "keywords": ["c2", "command and control", "beacon", "callback", "covert channel"]
+  },
+  {
+    "id": "T1071.001",
+    "name": "Web Protocols",
+    "tactic": "Command and Control",
+    "description": "Adversaries may communicate using application layer protocols associated with web traffic to avoid detection.",
+    "keywords": ["http c2", "https beacon", "web shell", "reverse shell http"]
+  },
+  {
+    "id": "T1046",
+    "name": "Network Service Discovery",
+    "tactic": "Discovery",
+    "description": "Adversaries may attempt to get a listing of services listening on remote hosts and local network infrastructure devices.",
+    "keywords": ["port scan", "network scan", "service discovery", "nmap", "port enumeration"]
+  },
+  {
+    "id": "T1048",
+    "name": "Exfiltration Over Alternative Protocol",
+    "tactic": "Exfiltration",
+    "description": "Adversaries may steal data by exfiltrating it over a different protocol than that of the existing command and control channel.",
+    "keywords": ["data exfiltration", "exfil", "data theft", "unauthorized transfer", "data leak"]
+  },
+  {
+    "id": "T1053",
+    "name": "Scheduled Task/Job",
+    "tactic": "Persistence",
+    "description": "Adversaries may abuse task scheduling functionality to facilitate initial or recurring execution of malicious code.",
+    "keywords": ["scheduled task", "cron job", "at command", "task scheduler", "persistence"]
+  },
+  {
+    "id": "T1055",
+    "name": "Process Injection",
+    "tactic": "Defense Evasion",
+    "description": "Adversaries may inject code into processes in order to evade process-based defenses as well as possibly elevate privileges.",
+    "keywords": ["process injection", "dll injection", "code injection", "hollowing"]
+  },
+  {
+    "id": "T1021",
+    "name": "Remote Services",
+    "tactic": "Lateral Movement",
+    "description": "Adversaries may use Valid Accounts to log into a service specifically designed to accept remote connections, such as telnet, SSH, and VNC.",
+    "keywords": ["lateral movement", "remote desktop", "rdp", "ssh lateral", "smb", "psexec", "wmi"]
+  },
+  {
+    "id": "T1548",
+    "name": "Abuse Elevation Control Mechanism",
+    "tactic": "Privilege Escalation",
+    "description": "Adversaries may circumvent mechanisms designed to control elevate privileges to gain higher-level permissions.",
+    "keywords": ["privilege escalation", "sudo", "uac bypass", "elevation", "admin access"]
+  }
+]

@@ -1,16 +1,17 @@
 :root {
-  --bg-color: #030008;
-  --panel-bg: rgba(7, 4, 18, 0.55);
-  --panel-border: rgba(6, 182, 212, 0.25);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --accent-cyan: #0ff;
-  --accent-cyan-glow: rgba(0, 255, 255, 0.8);
-  --accent-purple: #c026d3;
+  --bg-color: #fafcfa;
+  --panel-bg: rgba(255, 255, 255, 0.75);
+  --panel-border: rgba(255, 255, 255, 0.6);
+  --text-main: #1a1f1c;
+  --text-muted: #64748b;
+  --accent-green: #00C853;
+  --accent-green-hover: #00A040;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
-  --danger-glow: rgba(239, 68, 68, 0.5);
+  --danger-glow: rgba(239, 68, 68, 0.15);
+  --font-inter: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 * {
@@ -22,15 +23,38 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-main);
-  font-family: 'Inter', 'Fira Code', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-inter);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
   position: relative;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Background Animated Gradient Mesh */
+/* Layout */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 260px; /* Width of sidebar */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page-content {
+  flex: 1;
+  padding: 32px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Background Animated Gradient Mesh - Light Theme */
 .cyber-bg {
   position: fixed;
   top: 0;
@@ -39,57 +63,43 @@ body {
   height: 100vh;
   z-index: -2;
   background: 
-    radial-gradient(circle at 10% 20%, rgba(192, 38, 211, 0.1), transparent 30%),
-    radial-gradient(circle at 90% 80%, rgba(0, 255, 255, 0.1), transparent 30%),
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05), transparent 50%),
+    radial-gradient(circle at 15% 50%, rgba(26, 127, 69, 0.08), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(26, 127, 69, 0.12), transparent 50%),
+    radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.05), transparent 40%),
     var(--bg-color);
-  animation: bg-pulse 10s infinite alternate linear;
+  animation: bg-pulse 15s infinite alternate ease-in-out;
 }
 
-/* Moving grid lines overlay */
 .cyber-grid {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
-  background-image: 
-    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-  transform: perspective(500px) rotateX(60deg) scale(2);
-  transform-origin: top center;
-  animation: grid-move 20s linear infinite;
-}
-
-@keyframes grid-move {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 40px; }
+  /* Removed the hard grid lines for a softer look */
+  display: none; 
 }
 
 @keyframes bg-pulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.1); opacity: 1; }
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-color);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--accent-cyan);
+  background: rgba(26, 127, 69, 0.3);
   border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 127, 69, 0.5);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: #fff;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
 }
 
 button {
@@ -105,29 +115,19 @@ input, textarea {
   outline: none;
 }
 
-/* Holographic Panel */
+/* Glassmorphism Panel */
 .hologram-panel {
   background: var(--panel-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
+  border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.05), 
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   position: relative;
   overflow: hidden;
-}
-
-/* Top Chasing Border */
-.hologram-panel::after {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%; width: 50%; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-  animation: cyber-scan 3s infinite linear;
-}
-
-@keyframes cyber-scan {
-  0% { left: -100%; }
-  100% { left: 200%; }
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }

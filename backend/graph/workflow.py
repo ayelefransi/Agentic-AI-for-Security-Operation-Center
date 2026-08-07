@@ -1,124 +1,174 @@
-from langgraph.graph import StateGraph, END
-from schemas.alert_schema import GraphState
-from agents.query_rewriter import QueryRewriterAgent
-from agents.retriever import RetrieverAgent
-from agents.evaluator import EvaluatorAgent
-from agents.soc_agent import SOCReasoningAgent
+"""
+LangGraph Orchestrator for the full multi-agent SOC pipeline.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from langgraph.graph import END, StateGraph
+
+from agents.correlation_agent import CorrelationAgent
+from agents.decision_agent import DecisionAgent
+from agents.enrichment_agent import EnrichmentAgent
+from agents.ingestion_agent import IngestionAgent
+from agents.mitre_agent import MITREAgent
 from agents.reporter import ReporterAgent
+from agents.triage_agent import TriageAgent
+from schemas.schemas import IncidentState
+
+logger = logging.getLogger(__name__)
+
 
 class SOCWorkflow:
     def __init__(self):
-        self.rewriter = QueryRewriterAgent()
-        self.retriever = RetrieverAgent()
-        self.evaluator = EvaluatorAgent()
-        self.soc_agent = SOCReasoningAgent()
+        # Instantiate agents
+        self.ingestion = IngestionAgent()
+        self.enrichment = EnrichmentAgent()
+        self.mitre = MITREAgent()
+        self.correlation = CorrelationAgent()
+        self.triage = TriageAgent()
+        self.decision = DecisionAgent()
+        
+        # Keep ReporterAgent for backward compatibility (we might rewrite it later,
+        # but for now we'll just adapt its input)
         self.reporter = ReporterAgent()
         
         self.graph = self._build_graph()
 
     def _build_graph(self):
-        workflow = StateGraph(GraphState)
+        # Create a StateGraph using our new IncidentState Pydantic model
+        # Note: LangGraph accepts TypedDict natively, but can also work with Pydantic
+        # models if wrapped properly, or we can just pass dicts that conform to it.
+        # The easiest approach is passing the Pydantic model itself if LangGraph >=0.2 supports it.
+        # (It does, StateGraph takes a type).
+        workflow = StateGraph(IncidentState)
 
-        # Define nodes
-        workflow.add_node("query_rewriter", self.node_query_rewriter)
-        workflow.add_node("retriever", self.node_retriever)
-        workflow.add_node("evaluator", self.node_evaluator)
-        workflow.add_node("soc_agent", self.node_soc_agent)
+        # Add nodes
+        workflow.add_node("ingestion", self.node_ingestion)
+        workflow.add_node("enrichment", self.node_enrichment)
+        workflow.add_node("mitre", self.node_mitre)
+        workflow.add_node("correlation", self.node_correlation)
+        workflow.add_node("triage", self.node_triage)
+        workflow.add_node("decision", self.node_decision)
         workflow.add_node("reporter", self.node_reporter)
 
         # Set entry point
-        workflow.set_entry_point("query_rewriter")
+        workflow.set_entry_point("ingestion")
 
-        # Define edges
-        workflow.add_edge("query_rewriter", "retriever")
-        workflow.add_edge("retriever", "evaluator")
-        
-        # Conditional edge from evaluator
-        workflow.add_conditional_edges(
-            "evaluator",
-            self.evaluator_router,
-            {
-                "retry": "query_rewriter",
-                "proceed": "soc_agent"
-            }
-        )
-        
-        workflow.add_edge("soc_agent", "reporter")
+        # Define edges (Sequential pipeline)
+        # Note: Enrichment and MITRE could run in parallel conceptually, 
+        # but StateGraph sequential is simpler to trace.
+        workflow.add_edge("ingestion", "enrichment")
+        workflow.add_edge("enrichment", "mitre")
+        workflow.add_edge("mitre", "correlation")
+        workflow.add_edge("correlation", "triage")
+        workflow.add_edge("triage", "decision")
+        workflow.add_edge("decision", "reporter")
         workflow.add_edge("reporter", END)
 
         # Compile the graph
         return workflow.compile()
 
-    # Node Functions
-    def node_query_rewriter(self, state: GraphState):
-        alert = state.get("raw_alert")
-        missing = state.get("missing_aspects", [])
-        iterations = state.get("rewrite_iterations", 0)
+    # ── Node Functions ────────────────────────────────────────────────────────
+
+    async def node_ingestion(self, state: IncidentState):
+        logger.info("--- NODE: INGESTION ---")
+        return await self.ingestion.run(state)
+
+    async def node_enrichment(self, state: IncidentState):
+        logger.info("--- NODE: ENRICHMENT ---")
+        return await self.enrichment.run(state)
+
+    async def node_mitre(self, state: IncidentState):
+        logger.info("--- NODE: MITRE ---")
+        return await self.mitre.run(state)
+
+    async def node_correlation(self, state: IncidentState):
+        logger.info("--- NODE: CORRELATION ---")
+        return await self.correlation.run(state)
+
+    async def node_triage(self, state: IncidentState):
+        logger.info("--- NODE: TRIAGE ---")
+        return await self.triage.run(state)
+
+    async def node_decision(self, state: IncidentState):
+        logger.info("--- NODE: DECISION ---")
+        return await self.decision.run(state)
+
+    async def node_reporter(self, state: IncidentState):
+        logger.info("--- NODE: REPORTER ---")
+        # Adapt our old reporter to use the new state
         
-        # Give full raw alert on first try, otherwise pass previous missing aspects
-        optimized = self.rewriter.rewrite(alert, missing_aspects=missing)
-        
-        return {
-            "optimized_query": optimized,
-            "rewrite_iterations": iterations + 1
+        # Backward compat for the UI which expects 'decision' inside 'soc_analysis'
+        state.soc_analysis = {
+            "classification": state.decision or "Needs Investigation",
+            "decision": state.decision or "Needs Investigation", # For UI telemetry function
+            "reasoning": state.decision_reasoning,
+            "evidence": [],
+            "confidence_score": state.triage.confidence if state.triage else 0.5,
+            "recommended_action": "\\n".join(state.recommended_actions)
         }
-
-    def node_retriever(self, state: GraphState):
-        query = state.get("optimized_query")
-        docs = self.retriever.retrieve(query)
-        return {"retrieved_docs": docs}
-
-    def node_evaluator(self, state: GraphState):
-        alert = state.get("raw_alert")
-        docs = state.get("retrieved_docs")
         
-        eval_result = self.evaluator.evaluate(alert, docs)
+        # Generate the report string
+        report = ""
+        report += f"### 🚨 Incident Summary\n"
+        report += f"**Verdict:** `{state.decision}`\n"
         
-        return {
-            "is_sufficient": eval_result.is_sufficient,
-            "missing_aspects": eval_result.missing_aspects
-        }
-
-    def evaluator_router(self, state: GraphState):
-        is_sufficient = state.get("is_sufficient")
-        iterations = state.get("rewrite_iterations", 0)
-        docs = state.get("retrieved_docs", [])
-        
-        # If no documents are retrieved (DB is empty or query missed),
-        # rewriting the query over and over usually just wastes time and API quota.
-        if not docs:
-            return "proceed"
+        if state.triage:
+            report += f"**Severity:** `{state.triage.severity.value}` (Score: {state.triage.score}/100)\n"
             
-        if not is_sufficient and iterations < 1: # allow max 1 retry
-            return "retry"
-        return "proceed"
-
-    def node_soc_agent(self, state: GraphState):
-        alert = state.get("raw_alert")
-        docs = state.get("retrieved_docs")
+        report += f"\n### 🧠 Reasoning\n{state.decision_reasoning}\n\n"
         
-        analysis = self.soc_agent.analyze(alert, docs)
-        return {"soc_analysis": analysis}
-
-    def node_reporter(self, state: GraphState):
-        alert = state.get("raw_alert")
-        analysis = state.get("soc_analysis")
+        if state.events:
+            report += f"### 📝 Extracted Entities\n"
+            for ev in state.events:
+                report += f"- Type: `{ev.event_type}`\n"
+                for ioc in ev.extracted_iocs:
+                    report += f"  - `{ioc.type.value}`: {ioc.value}\n"
+            report += "\n"
+            
+        if state.enrichments:
+            report += f"### 🔬 Threat Intel Enrichment\n"
+            for enr in state.enrichments:
+                icon = "🔴" if enr.final_verdict.value == "malicious" else "🟡" if enr.final_verdict.value == "suspicious" else "🟢"
+                report += f"- {icon} **{enr.ioc.value}** - {enr.final_verdict.value.upper()}\n"
+                for r in enr.results:
+                    if not r.error:
+                        report += f"  - _{r.source}_: {r.verdict.value} (conf: {r.confidence})\n"
+            report += "\n"
+            
+        if state.mitre_mappings:
+            report += f"### 🗺️ MITRE ATT&CK Mappings\n"
+            for m in state.mitre_mappings:
+                report += f"- **{m.technique_id}** {m.technique_name} [{m.tactic}]\n"
+            report += "\n"
+            
+        if state.recommended_actions:
+            report += f"### ⚡ Recommended Actions\n"
+            for a in state.recommended_actions:
+                report += f"- {a}\n"
         
-        report = self.reporter.generate_report(alert, analysis)
-        return {"final_report": report}
+        state.report = report
+        
+        # Ensure rewrite_iterations is returned (for UI compat)
+        state.rewrite_iterations = 1
+        
+        return state
 
-    async def run(self, raw_alert: str) -> GraphState:
-        initial_state = {
-            "raw_alert": raw_alert,
-            "optimized_query": "",
-            "retrieved_docs": [],
-            "rewrite_iterations": 0,
-            "is_sufficient": False,
-            "missing_aspects": [],
-            "soc_analysis": None,
-            "final_report": ""
-        }
+    async def run(self, raw_alert: str) -> dict[str, Any]:
+        """
+        Public entry point. Creates a new IncidentState and runs it through the graph.
+        Returns the final state as a dictionary.
+        """
+        initial_state = IncidentState(raw_alert=raw_alert)
         
         # Run graph
         final_state = await self.graph.ainvoke(initial_state)
+        
+        # Pydantic models in LangGraph v0.2+ are returned as dicts or models depending on setup.
+        # We ensure it's a dict for API serialization.
+        if isinstance(final_state, IncidentState):
+            return final_state.model_dump()
         return final_state
