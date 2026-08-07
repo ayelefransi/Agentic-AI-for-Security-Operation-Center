@@ -168,7 +168,7 @@ export default function AnalyzePage() {
       </header>
 
       <div className={styles.panelWrapper}>
-        <PanelGroup direction="horizontal" className={styles.panelGroup}>
+        <PanelGroup orientation="horizontal" className={styles.panelGroup}>
           {/* ── Left Panel: Raw Alert Data ──────────────────────────────── */}
           <Panel defaultSize={40} minSize={25} className={styles.panel}>
             <GlassCard className={styles.inputCard}>
