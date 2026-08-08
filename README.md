@@ -1,4 +1,5 @@
 # NEXUS Command: Autonomous SOC Agent
+<img width="1536" height="1024" alt="SOC Agent" src="https://github.com/user-attachments/assets/941a7a14-3661-4ae2-bcbe-81e2a5289518" />
 
 NEXUS Command is an AI-powered Security Operations Center (SOC) platform. It uses a graph-based multi-agent architecture to ingest raw security telemetry, enrich it with threat intelligence, map behaviors to MITRE ATT&CK, and output analyst-ready triage decisions.
 
