@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_TTL_SECONDS = 3600
 
 # Cache DB location (relative to backend/)
-_CACHE_DB_PATH = os.path.join(os.path.dirname(__file__), "ioc_cache.db")
+_CACHE_DB_PATH = "/tmp/ioc_cache.db" if os.environ.get("VERCEL") else os.path.join(os.path.dirname(__file__), "ioc_cache.db")
 
 
 class IOCCache:

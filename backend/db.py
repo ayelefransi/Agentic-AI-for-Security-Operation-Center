@@ -9,7 +9,7 @@ from schemas.schemas import IncidentState
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "incidents.db")
+DB_PATH = "/tmp/incidents.db" if os.environ.get("VERCEL") else os.path.join(os.path.dirname(__file__), "incidents.db")
 
 def _get_connection():
     # Detect if we are in a testing environment where threading rules need relaxing
