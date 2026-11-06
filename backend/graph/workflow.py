@@ -99,63 +99,7 @@ class SOCWorkflow:
 
     async def node_reporter(self, state: IncidentState):
         logger.info("--- NODE: REPORTER ---")
-        # Adapt our old reporter to use the new state
-        
-        # Backward compat for the UI which expects 'decision' inside 'soc_analysis'
-        state.soc_analysis = {
-            "classification": state.decision or "Needs Investigation",
-            "decision": state.decision or "Needs Investigation", # For UI telemetry function
-            "reasoning": state.decision_reasoning,
-            "evidence": [],
-            "confidence_score": state.triage.confidence if state.triage else 0.5,
-            "recommended_action": "\\n".join(state.recommended_actions)
-        }
-        
-        # Generate the report string
-        report = ""
-        report += f"### 🚨 Incident Summary\n"
-        report += f"**Verdict:** `{state.decision}`\n"
-        
-        if state.triage:
-            report += f"**Severity:** `{state.triage.severity.value}` (Score: {state.triage.score}/100)\n"
-            
-        report += f"\n### 🧠 Reasoning\n{state.decision_reasoning}\n\n"
-        
-        if state.events:
-            report += f"### 📝 Extracted Entities\n"
-            for ev in state.events:
-                report += f"- Type: `{ev.event_type}`\n"
-                for ioc in ev.extracted_iocs:
-                    report += f"  - `{ioc.type.value}`: {ioc.value}\n"
-            report += "\n"
-            
-        if state.enrichments:
-            report += f"### 🔬 Threat Intel Enrichment\n"
-            for enr in state.enrichments:
-                icon = "🔴" if enr.final_verdict.value == "malicious" else "🟡" if enr.final_verdict.value == "suspicious" else "🟢"
-                report += f"- {icon} **{enr.ioc.value}** - {enr.final_verdict.value.upper()}\n"
-                for r in enr.results:
-                    if not r.error:
-                        report += f"  - _{r.source}_: {r.verdict.value} (conf: {r.confidence})\n"
-            report += "\n"
-            
-        if state.mitre_mappings:
-            report += f"### 🗺️ MITRE ATT&CK Mappings\n"
-            for m in state.mitre_mappings:
-                report += f"- **{m.technique_id}** {m.technique_name} [{m.tactic}]\n"
-            report += "\n"
-            
-        if state.recommended_actions:
-            report += f"### ⚡ Recommended Actions\n"
-            for a in state.recommended_actions:
-                report += f"- {a}\n"
-        
-        state.report = report
-        
-        # Ensure rewrite_iterations is returned (for UI compat)
-        state.rewrite_iterations = 1
-        
-        return state
+        return await self.reporter.run(state)
 
     async def run(self, raw_alert: str) -> dict[str, Any]:
         """

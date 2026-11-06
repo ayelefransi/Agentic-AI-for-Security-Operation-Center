@@ -197,5 +197,11 @@ class IncidentState(BaseModel):
     # Agent execution trace (audit trail)
     agent_trace: list[AgentStepLog] = Field(default_factory=list)
     
+    # Supervisor state (for multi-agent orchestration)
+    investigation_plan_summary: Optional[str] = None
+    supervisor_plan: Optional[dict[str, Any]] = None
+    supervisor_iteration: int = 0
+    supervisor_decision: Optional[dict[str, Any]] = None
+    
     # Analyst feedback
     feedback: Optional[AnalystFeedback] = None

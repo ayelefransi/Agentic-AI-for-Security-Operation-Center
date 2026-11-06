@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from graph.workflow import SOCWorkflow
+from graph.workflow_v2 import SOCWorkflowV2
 from config.settings import settings
 from agents.mitre_agent import get_mitre_heatmap_data
 from schemas.schemas import IncidentState, AnalystFeedback, Severity
@@ -53,11 +54,18 @@ def generate_telemetry(decision: str) -> list:
     return data
 
 # We'll instantiate the workflow globally (ideally would manage its resources more gracefully)
+# Use V2 workflow with supervisor agent
 try:
-    workflow = SOCWorkflow()
+    workflow = SOCWorkflowV2()
+    logger.info("Initialized SOCWorkflowV2 (supervisor-controlled)")
 except Exception as e:
-    logger.error(f"Failed to initialize workflow: {e}")
-    workflow = None
+    logger.error(f"Failed to initialize V2 workflow: {e}, falling back to V1")
+    try:
+        workflow = SOCWorkflow()
+        logger.info("Initialized SOCWorkflow V1 (legacy)")
+    except Exception as e2:
+        logger.error(f"Failed to initialize workflow: {e2}")
+        workflow = None
 
 @app.post("/api/analyze-alert", response_model=AlertResponse)
 async def analyze_alert(request: AlertRequest):
