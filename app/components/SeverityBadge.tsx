@@ -1,29 +1,17 @@
-import { ShieldAlert, ShieldCheck, Shield, AlertTriangle } from 'lucide-react';
-import styles from './SeverityBadge.module.css';
+interface SeverityBadgeProps {
+  severity: string;
+}
 
-type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
+const severityStyles: Record<string, string> = {
+  Critical: 'badge-critical',
+  High: 'badge-high',
+  Medium: 'badge-medium',
+  Low: 'badge-low',
+};
 
-export default function SeverityBadge({ severity }: { severity: Severity | string }) {
-  const getSeverityConfig = () => {
-    switch (severity?.toLowerCase()) {
-      case 'critical':
-        return { icon: ShieldAlert, className: styles.critical };
-      case 'high':
-        return { icon: AlertTriangle, className: styles.high };
-      case 'medium':
-        return { icon: Shield, className: styles.medium };
-      case 'low':
-      default:
-        return { icon: ShieldCheck, className: styles.low };
-    }
-  };
+export default function SeverityBadge({ severity }: SeverityBadgeProps) {
+  const normalizedSeverity = severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase();
+  const className = severityStyles[normalizedSeverity] || 'badge-info';
 
-  const { icon: Icon, className } = getSeverityConfig();
-
-  return (
-    <span className={`${styles.badge} ${className}`}>
-      <Icon size={14} className={styles.icon} />
-      {severity}
-    </span>
-  );
+  return <span className={`badge ${className}`}>{normalizedSeverity}</span>;
 }

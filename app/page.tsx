@@ -2,231 +2,213 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { ShieldAlert, TrendingUp, AlertOctagon, Activity, ChevronRight } from 'lucide-react';
-import CountUp from 'react-countup';
-import GlassCard from './components/GlassCard';
+import Link from 'next/link';
+import { Activity, AlertTriangle, Shield, Clock, ChevronRight, Search } from 'lucide-react';
+import MetricCard from './components/MetricCard';
 import SeverityBadge from './components/SeverityBadge';
-import IOCChip from './components/IOCChip';
 import styles from './page.module.css';
 
-export default function Dashboard() {
+interface Stats {
+  total_alerts: number;
+  open_incidents: number;
+  critical_alerts: number;
+  avg_triage_seconds: number;
+}
+
+interface Incident {
+  id: string;
+  created_at: string;
+  decision: string;
+  decision_reasoning: string;
+  triage?: {
+    severity: string;
+    score: number;
+  };
+  events?: Array<{
+    event_type: string;
+    src_ip?: string;
+    dst_ip?: string;
+  }>;
+  status: string;
+}
+
+export default function CommandCenter() {
   const router = useRouter();
-  const [incidents, setIncidents] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [incRes, statRes] = await Promise.all([
-          fetch('/api/incidents'),
-          fetch('/api/stats')
+        const [statsRes, incidentsRes] = await Promise.all([
+          fetch('/api/stats'),
+          fetch('/api/incidents')
         ]);
-        
-        if (incRes.ok) {
-          const data = await incRes.json();
+
+        if (statsRes.ok) {
+          setStats(await statsRes.json());
+        }
+
+        if (incidentsRes.ok) {
+          const data = await incidentsRes.json();
           setIncidents(data.incidents || []);
         }
-        if (statRes.ok) {
-          setStats(await statRes.json());
-        }
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, []);
 
-  const mockChartData = [
-    { time: "Day -7", volume: 10, severity: 20 },
-    { time: "Day -6", volume: 20, severity: 25 },
-    { time: "Day -5", volume: 15, severity: 40 },
-    { time: "Day -4", volume: 30, severity: 30 },
-    { time: "Day -3", volume: 45, severity: 55 },
-    { time: "Day -2", volume: 60, severity: 80 },
-    { time: "Today", volume: 95, severity: 95 },
-  ];
-
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      {/* Header */}
+      <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Dashboard</h1>
-          <p className={styles.subtitle}>System Overview & Active Incidents</p>
+          <h1 className={styles.title}>Command Center</h1>
+          <p className={styles.description}>Security operations overview and active incidents</p>
         </div>
-        <button className={styles.primaryAction} onClick={() => router.push('/analyze')}>
-          <ShieldAlert size={18} />
-          Analyze New Alert
+        <button 
+          className="btn btn-primary"
+          onClick={() => router.push('/analyze')}
+        >
+          <Search size={16} />
+          Analyze Alert
         </button>
-      </header>
-
-      {/* Summary Cards */}
-      <div className={styles.summaryGrid}>
-        <GlassCard delay={0.06} className={styles.summaryCard}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>Total Alerts</span>
-            <Activity className={styles.cardIcon} />
-          </div>
-          <div className={styles.cardValue}>
-            {loading ? <div className={`${styles.skeletonValue} skeleton`} /> : (
-              <CountUp end={stats?.total_alerts || 0} duration={1.5} useEasing />
-            )}
-          </div>
-        </GlassCard>
-        
-        <GlassCard delay={0.12} className={styles.summaryCard}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>Open Incidents</span>
-            <AlertOctagon className={styles.cardIcon} style={{ color: 'var(--color-medium)' }} />
-          </div>
-          <div className={styles.cardValue}>
-            {loading ? <div className={`${styles.skeletonValue} skeleton`} /> : (
-              <CountUp end={stats?.open_incidents || 0} duration={1.5} useEasing />
-            )}
-          </div>
-        </GlassCard>
-
-        <GlassCard delay={0.18} className={styles.summaryCard}>
-          <div className={styles.cardHeader}>
-            <span className={styles.cardTitle}>Critical Severity</span>
-            <AlertOctagon className={styles.cardIcon} style={{ color: 'var(--color-critical)' }} />
-          </div>
-          <div className={styles.cardValue}>
-            {loading ? <div className={`${styles.skeletonValue} skeleton`} /> : (
-              <CountUp end={stats?.critical_alerts || 0} duration={1.5} useEasing />
-            )}
-          </div>
-        </GlassCard>
       </div>
 
-      <div className={styles.mainGrid}>
-        {/* Incident Feed */}
-        <div className={styles.incidentFeed}>
+      {/* Metrics */}
+      <div className={styles.metricsGrid}>
+        <MetricCard
+          title="Active Incidents"
+          value={stats?.open_incidents || 0}
+          icon={<Activity size={18} />}
+          loading={loading}
+        />
+        <MetricCard
+          title="Critical Alerts"
+          value={stats?.critical_alerts || 0}
+          icon={<AlertTriangle size={18} />}
+          loading={loading}
+        />
+        <MetricCard
+          title="Total Alerts"
+          value={stats?.total_alerts || 0}
+          icon={<Shield size={18} />}
+          loading={loading}
+        />
+        <MetricCard
+          title="Avg Triage Time"
+          value={stats ? `${stats.avg_triage_seconds.toFixed(1)}s` : '0s'}
+          icon={<Clock size={18} />}
+          loading={loading}
+        />
+      </div>
+
+      {/* Recent Incidents */}
+      <div className={styles.section}>
+        <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Recent Incidents</h2>
-          
-          {loading ? (
-            <div className={styles.feedList}>
-              {[1, 2, 3].map(i => (
-                <GlassCard key={i} delay={0.2 + (i * 0.05)} className={`${styles.feedItem} ${styles.skeletonCard}`}>
-                  <div className={`${styles.skeletonTitle} skeleton`} />
-                  <div className={`${styles.skeletonDesc} skeleton`} />
-                  <div className={`${styles.skeletonDesc} skeleton`} style={{ width: '60%' }} />
-                </GlassCard>
-              ))}
-            </div>
-          ) : incidents.length === 0 ? (
-            <GlassCard className={styles.emptyState}>
-              <div className={styles.emptyIconWrap}>
-                <ShieldAlert size={48} className={styles.emptyIcon} />
+          <Link href="/incidents" className={styles.sectionLink}>
+            View All <ChevronRight size={16} />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="card">
+            <div className="skeleton" style={{ height: '200px' }}></div>
+          </div>
+        ) : incidents.length === 0 ? (
+          <div className="card">
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                <Shield size={48} />
               </div>
-              <h3>No Incidents Found</h3>
-              <p>The system has not ingested any alerts yet.</p>
-              <button onClick={() => router.push('/analyze')} className={styles.textButton}>
-                Analyze an alert to get started
+              <div className="empty-state-title">No Incidents</div>
+              <div className="empty-state-description">
+                No security incidents have been recorded yet.
+              </div>
+              <button 
+                className="btn btn-primary mt-4"
+                onClick={() => router.push('/analyze')}
+              >
+                Analyze Your First Alert
               </button>
-            </GlassCard>
-          ) : (
-            <div className={styles.feedList}>
-              {incidents.slice(0, 5).map((incident, i) => (
-                <GlassCard 
-                  key={incident.id} 
-                  delay={0.24 + (i * 0.06)} 
-                  hoverEffect 
-                  className={styles.feedItem}
-                >
-                  <div className={styles.feedItemHeader}>
-                    <SeverityBadge severity={incident.triage?.severity || 'Low'} />
-                    <span className={styles.timeAgo}>
-                      {new Date(incident.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  
-                  <h3 className={styles.feedItemTitle}>
-                    {incident.decision || "Investigation Pending"}
-                  </h3>
-                  
-                  <p className={styles.feedItemDesc}>
-                    {incident.decision_reasoning?.substring(0, 100)}...
-                  </p>
-
-                  {incident.events && incident.events[0]?.extracted_iocs && (
-                    <div className={styles.iocList}>
-                      {incident.events[0].extracted_iocs.slice(0, 3).map((ioc: any, idx: number) => {
-                         const enr = incident.enrichments?.find((e: any) => e.ioc.value === ioc.value);
-                         return (
-                           <IOCChip 
-                             key={idx} 
-                             type={ioc.type} 
-                             value={ioc.value} 
-                             verdict={enr?.final_verdict || 'unknown'} 
-                           />
-                         );
-                      })}
-                      {incident.events[0].extracted_iocs.length > 3 && (
-                        <span className={styles.moreIocs}>+{incident.events[0].extracted_iocs.length - 3}</span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className={styles.feedItemFooter}>
-                    <button className={styles.viewButton} onClick={() => router.push(`/incidents/${incident.id}`)}>
-                      View Details <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </GlassCard>
-              ))}
             </div>
-          )}
-        </div>
-
-        {/* Telemetry Chart */}
-        <div className={styles.chartSection}>
-          <h2 className={styles.sectionTitle}>Threat Telemetry</h2>
-          <GlassCard delay={0.4} className={styles.chartCard}>
-             <div className={styles.chartHeader}>
-               <TrendingUp size={20} color="var(--accent-primary)" />
-               <h3>7-Day Volume vs Severity</h3>
-             </div>
-             <div className={styles.chartWrapper}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorVolume" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorSeverity" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-critical)" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="var(--color-critical)" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" vertical={false} />
-                    <XAxis dataKey="time" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: "var(--glass-bg-active)", 
-                        backdropFilter: "blur(20px)",
-                        border: "1px solid var(--glass-border)", 
-                        borderRadius: "12px",
-                        boxShadow: "var(--glass-shadow-hover)",
-                        color: "var(--text-primary)"
-                      }}
-                      itemStyle={{ fontWeight: 600 }}
-                    />
-                    <Area type="monotone" dataKey="volume" name="Signal Activity" stroke="var(--accent-primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorVolume)" />
-                    <Area type="monotone" dataKey="severity" name="Threat Gravity" stroke="var(--color-critical)" strokeWidth={3} fillOpacity={1} fill="url(#colorSeverity)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-             </div>
-          </GlassCard>
-        </div>
+          </div>
+        ) : (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Verdict</th>
+                  <th>Severity</th>
+                  <th>Event Type</th>
+                  <th>Source</th>
+                  <th>Time</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {incidents.slice(0, 10).map((incident) => (
+                  <tr key={incident.id} onClick={() => router.push(`/incidents/${incident.id}`)} style={{ cursor: 'pointer' }}>
+                    <td>
+                      <code style={{ fontSize: '12px' }}>
+                        {incident.id.substring(0, 8)}
+                      </code>
+                    </td>
+                    <td style={{ fontWeight: 500 }}>
+                      {incident.decision || 'Pending'}
+                    </td>
+                    <td>
+                      {incident.triage?.severity ? (
+                        <SeverityBadge severity={incident.triage.severity} />
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {incident.events?.[0]?.event_type || 'Unknown'}
+                    </td>
+                    <td>
+                      {incident.events?.[0]?.src_ip ? (
+                        <code style={{ fontSize: '12px' }}>
+                          {incident.events[0].src_ip}
+                        </code>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="text-muted" style={{ fontSize: '12px' }}>
+                      {new Date(incident.created_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td>
+                      <span className="badge badge-info" style={{ textTransform: 'capitalize' }}>
+                        {incident.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td>
+                      <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
