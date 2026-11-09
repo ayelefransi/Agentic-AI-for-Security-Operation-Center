@@ -1,0 +1,28 @@
+# Kiro agent and skills folders
+.agents/
+.kiro/
+.claude/
+agent/
+
+# Development files
+*.log
+*.md
+!README.md
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Backend
+backend/
+api/index.py
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
