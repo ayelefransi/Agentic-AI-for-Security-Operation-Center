@@ -4,6 +4,10 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+// Optional API key for authenticated endpoints
+// Set this in .env.local as NEXT_PUBLIC_API_KEY if backend requires auth
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+
 export class APIError extends Error {
   constructor(
     message: string,
@@ -42,12 +46,20 @@ async function apiFetch<T>(
 
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
+      // Build headers with optional authorization
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...fetchOptions.headers as Record<string, string>,
+      };
+
+      // Add API key if available (for endpoints that require auth)
+      if (API_KEY) {
+        headers['Authorization'] = `Bearer ${API_KEY}`;
+      }
+
       const response = await fetch(url, {
         ...fetchOptions,
-        headers: {
-          'Content-Type': 'application/json',
-          ...fetchOptions.headers,
-        },
+        headers,
       });
 
       // Handle non-OK responses
