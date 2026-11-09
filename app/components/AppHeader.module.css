@@ -1,53 +1,52 @@
 .header {
+  position: sticky;
+  top: 0;
   height: var(--header-height);
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 32px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  padding: 0 24px;
+  z-index: var(--z-header);
+  backdrop-filter: blur(8px);
+  background: rgba(16, 25, 21, 0.95);
 }
+
+/* ─── Left Section ─── */
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 20px;
+  flex: 1;
 }
 
 .pageTitle {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--text-primary);
+  margin: 0;
 }
 
-.breadcrumbs {
+.breadcrumb {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--text-secondary);
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.breadcrumbItem {
+  font-family: var(--font-mono);
 }
 
 .breadcrumbSeparator {
-  color: var(--text-muted);
+  opacity: 0.5;
 }
 
-.breadcrumbLink {
-  color: var(--text-secondary);
-  transition: color var(--transition-base);
-}
-
-.breadcrumbLink:hover {
-  color: var(--text-primary);
-}
-
-.breadcrumbCurrent {
-  color: var(--text-primary);
-  font-weight: 500;
-}
+/* ─── Right Section ─── */
 
 .headerRight {
   display: flex;
@@ -55,89 +54,147 @@
   gap: 12px;
 }
 
-.searchBox {
+/* ─── Search Button ─── */
+
+.searchButton {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  background: var(--bg-surface-secondary);
-  border: 1px solid var(--border-color);
+  padding: 7px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  min-width: 240px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
+  min-width: 200px;
 }
 
-.searchBox:hover {
-  border-color: var(--border-hover);
+.searchButton:hover {
   background: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
 }
 
-.searchIcon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.searchText {
+.searchButton span {
   flex: 1;
-  font-size: 14px;
+  text-align: left;
+}
+
+.kbd {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   color: var(--text-muted);
 }
 
-.searchKbd {
-  font-size: 11px;
+/* ─── Environment Badge ─── */
+
+.environmentBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 69, 69, 0.1);
+  border: 1px solid rgba(255, 69, 69, 0.3);
+  border-radius: var(--radius-md);
   font-family: var(--font-mono);
-  color: var(--text-muted);
-  background: var(--bg-surface);
-  padding: 2px 6px;
-  border-radius: 3px;
-  border: 1px solid var(--border-color);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--severity-critical);
+  letter-spacing: 0.5px;
 }
+
+.envDot {
+  width: 6px;
+  height: 6px;
+  background: var(--severity-critical);
+  border-radius: 50%;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ─── Icon Buttons ─── */
 
 .iconButton {
-  width: 36px;
-  height: 36px;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  transition: all var(--transition-base);
-  position: relative;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .iconButton:hover {
   background: var(--bg-hover);
+  border-color: var(--border-hover);
   color: var(--text-primary);
+}
+
+.statusOnline {
+  color: var(--status-online);
+}
+
+.statusOffline {
+  color: var(--status-offline);
 }
 
 .notificationBadge {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 16px;
-  height: 16px;
-  background: var(--color-critical);
-  color: white;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 50%;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 5px;
+  background: var(--severity-critical);
   border: 2px solid var(--bg-surface);
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
 }
+
+/* ─── Time Display ─── */
+
+.timeDisplay {
+  padding: 6px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ─── User Menu ─── */
 
 .userMenu {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 6px 12px 6px 6px;
-  background: var(--bg-surface-secondary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
 }
 
 .userMenu:hover {
@@ -146,41 +203,67 @@
 }
 
 .avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent-primary-light);
-  color: var(--accent-primary);
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 12px;
+  background: var(--primary-ghost);
+  border: 1px solid var(--primary-dim);
+  border-radius: var(--radius-md);
+  color: var(--primary-neon);
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .userName {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
   color: var(--text-primary);
+  line-height: 1;
+}
+
+.userRole {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 1024px) {
+  .searchButton {
+    min-width: 40px;
+  }
+  
+  .searchButton span,
+  .kbd {
+    display: none;
+  }
+  
+  .timeDisplay {
+    display: none;
+  }
+  
+  .userInfo {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
   .header {
     padding: 0 16px;
   }
-
-  .searchBox {
-    min-width: auto;
-    width: 36px;
-    padding: 8px;
-  }
-
-  .searchText,
-  .searchKbd {
+  
+  .breadcrumb {
     display: none;
   }
-
-  .breadcrumbs {
+  
+  .environmentBadge {
     display: none;
   }
 }

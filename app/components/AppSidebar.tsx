@@ -11,7 +11,10 @@ import {
   Network,
   FileText,
   Settings,
-  ChevronRight
+  FileCheck,
+  Users,
+  ChevronRight,
+  Circle
 } from 'lucide-react';
 import styles from './AppSidebar.module.css';
 
@@ -42,6 +45,8 @@ const navGroups = [
     title: 'SYSTEM',
     items: [
       { name: 'Settings', path: '/settings', icon: Settings },
+      { name: 'Audit Logs', path: '/audit', icon: FileCheck },
+      { name: 'User Management', path: '/users', icon: Users },
     ]
   }
 ];
@@ -56,12 +61,14 @@ export default function AppSidebar() {
 
   return (
     <aside className={styles.sidebar}>
-      {/* Logo */}
+      {/* Logo Section */}
       <div className={styles.logoSection}>
-        <Shield className={styles.logoIcon} size={20} strokeWidth={2} />
+        <div className={styles.logoIcon}>
+          <Shield size={24} strokeWidth={2.5} />
+        </div>
         <div className={styles.logoText}>
-          <span className={styles.logoTitle}>NEXUS</span>
-          <span className={styles.logoSubtitle}>COMMAND</span>
+          <div className={styles.logoTitle}>NEXUS COMMAND</div>
+          <div className={styles.logoSubtitle}>SECURITY OPERATIONS CENTER</div>
         </div>
       </div>
 
@@ -80,7 +87,7 @@ export default function AppSidebar() {
                   href={item.path}
                   className={`${styles.navItem} ${active ? styles.active : ''}`}
                 >
-                  <Icon size={18} className={styles.navIcon} />
+                  <Icon size={18} className={styles.navIcon} strokeWidth={2} />
                   <span className={styles.navLabel}>{item.name}</span>
                   {active && <ChevronRight size={16} className={styles.navChevron} />}
                 </Link>
@@ -93,8 +100,11 @@ export default function AppSidebar() {
       {/* System Status */}
       <div className={styles.statusSection}>
         <div className={styles.statusIndicator}>
-          <span className={styles.statusDot} />
-          <span className={styles.statusText}>Agents Online</span>
+          <Circle className={styles.statusDot} size={8} fill="currentColor" />
+          <div className={styles.statusInfo}>
+            <div className={styles.statusLabel}>System Status</div>
+            <div className={styles.statusText}>All Agents Online</div>
+          </div>
         </div>
       </div>
     </aside>
