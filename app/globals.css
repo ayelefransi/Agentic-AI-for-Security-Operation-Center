@@ -46,6 +46,7 @@
   --bg-surface: #0C130E;
   --bg-surface-secondary: #0F1713;
   --bg-hover: rgba(0, 255, 65, 0.1);
+  --bg-sidebar: #0A0E0D;
   
   /* Border Colors */
   --border-color: rgba(0, 255, 65, 0.2);
@@ -109,6 +110,7 @@
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 72px;
   --sidebar-margin: 16px;
+  --header-height: 64px;
   
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -494,6 +496,54 @@ tbody td {
 
 .mt-4 {
   margin-top: var(--space-4);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYOUT STRUCTURE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-background);
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: var(--sidebar-width);
+  min-width: 0; /* Prevents flex item from overflowing */
+  transition: margin-left var(--transition-slow);
+  width: calc(100% - var(--sidebar-width));
+}
+
+/* When sidebar is collapsed */
+.sidebar-collapsed .main-content {
+  margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+.page-container {
+  flex: 1;
+  padding: var(--space-6);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .page-container {
+    padding: var(--space-4);
+  }
 }
 
 /* Glitch Effect */
