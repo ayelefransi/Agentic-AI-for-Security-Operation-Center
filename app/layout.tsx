@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from './contexts/ThemeContext';
 import LayoutShell from './components/LayoutShell';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -21,6 +22,17 @@ export const metadata: Metadata = {
   description: 'Agentic Threat Intelligence & Orchestration',
 };
 
+/**
+ * Root layout component for the NEXUS Command SOC Platform.
+ * 
+ * Provides:
+ * - Global fonts (Inter for UI, JetBrains Mono for code)
+ * - Theme provider for light/dark mode
+ * - Error boundary for crash recovery
+ * - Layout shell with navigation
+ * 
+ * @param children - Page content to render
+ */
 export default function RootLayout({
   children,
 }: {
@@ -29,9 +41,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetbrainsMono.variable}`}>
-        <ThemeProvider>
-          <LayoutShell>{children}</LayoutShell>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider>
+            <LayoutShell>{children}</LayoutShell>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

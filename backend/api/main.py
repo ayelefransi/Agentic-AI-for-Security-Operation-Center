@@ -5,25 +5,69 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Path
-from pydantic import BaseModel
-from typing import List, Optional
+import random
+from typing import Optional
+
+from fastapi import Depends, FastAPI, HTTPException
+from pydantic import BaseModel, Field, validator
 
 from graph.workflow import SOCWorkflow
 from graph.workflow_v2 import SOCWorkflowV2
 from config.settings import settings
 from agents.mitre_agent import get_mitre_heatmap_data
 from schemas.schemas import IncidentState, AnalystFeedback, Severity
+from middleware.security import (
+    InputSanitizer,
+    RateLimitMiddleware,
+    RequestSizeLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
+from middleware.auth import APIKey, OptionalAuth, require_permission
 import db
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name)
+app = FastAPI(
+    title=settings.app_name,
+    version="2.0.0",
+    description="Autonomous Multi-Agent SOC Platform"
+)
+
+# Add security middleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
+app.add_middleware(RequestSizeLimitMiddleware, max_size_mb=10)
+
+# Add CORS middleware
+from starlette.middleware.cors import CORSMiddleware
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["X-Total-Count", "X-Request-ID"],
+    max_age=600,
+)
 
 class AlertRequest(BaseModel):
-    alert: str
+    alert: str = Field(..., min_length=1, max_length=50000, description="Raw security alert text")
+    
+    @validator('alert')
+    def sanitize_alert(cls, v):
+        """Sanitize and validate alert input."""
+        return InputSanitizer.sanitize_alert(v)
 
 class AlertResponse(BaseModel):
     structured_json: dict
@@ -31,7 +75,7 @@ class AlertResponse(BaseModel):
     iterations: int
     telemetry_data: list = []
 
-import random
+
 def generate_telemetry(decision: str) -> list:
     is_critical = "True Positive" in decision or "Critical" in decision
     
@@ -68,7 +112,10 @@ except Exception as e:
         workflow = None
 
 @app.post("/api/analyze-alert", response_model=AlertResponse)
-async def analyze_alert(request: AlertRequest):
+async def analyze_alert(
+    request: AlertRequest,
+    api_key: APIKey = Depends(require_permission("write"))
+):
     if not workflow:
         raise HTTPException(status_code=500, detail="Workflow initialization failed.")
     
@@ -104,13 +151,18 @@ async def analyze_alert(request: AlertRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/incidents")
-async def list_incidents():
+async def list_incidents(
+    api_key: Optional[APIKey] = Depends(OptionalAuth())
+):
     """List all analyzed incidents."""
     incidents = db.list_incidents()
     return {"incidents": [inc.model_dump() for inc in incidents]}
 
 @app.get("/api/incidents/{incident_id}")
-async def get_incident(incident_id: str):
+async def get_incident(
+    incident_id: str,
+    api_key: APIKey = Depends(require_permission("read"))
+):
     """Get full details of a specific incident."""
     incident = db.get_incident(incident_id)
     if not incident:
@@ -118,12 +170,16 @@ async def get_incident(incident_id: str):
     return incident.model_dump()
 
 @app.get("/api/mitre-heatmap")
-async def get_mitre_heatmap():
+async def get_mitre_heatmap(
+    api_key: Optional[APIKey] = Depends(OptionalAuth())
+):
     """Get aggregated MITRE technique hit counts across all incidents."""
     return get_mitre_heatmap_data(db.list_incidents())
 
 @app.get("/api/stats")
-async def get_stats():
+async def get_stats(
+    api_key: Optional[APIKey] = Depends(OptionalAuth())
+):
     """Get top-level SOC dashboard stats."""
     incidents = db.list_incidents()
     total = len(incidents)
@@ -154,7 +210,11 @@ class FeedbackRequest(BaseModel):
     notes: str = ""
 
 @app.post("/api/feedback/{incident_id}")
-async def submit_feedback(incident_id: str, request: FeedbackRequest):
+async def submit_feedback(
+    incident_id: str,
+    request: FeedbackRequest,
+    api_key: APIKey = Depends(require_permission("write"))
+):
     """Submit analyst feedback/override for an incident."""
     incident = db.get_incident(incident_id)
     if not incident:

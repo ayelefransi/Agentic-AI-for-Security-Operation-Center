@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Localization String Checker",
+      "trigger": "PostFileSave",
+      "description": "Automatically identifies and extracts hardcoded strings for localization",
+      "matcher": "\\.(tsx|jsx)$",
+      "action": {
+        "type": "agent",
+        "prompt": "Review the React component that was just saved for hardcoded user-facing strings. Check for:\n- Text content in JSX that should be localized\n- Button labels, tooltips, error messages, placeholders\n- Any user-visible strings not using i18n/translation functions\n\nIf you find hardcoded strings that should be localized:\n1. Extract them to a localization key\n2. Add them to the appropriate translation file (or create one if needed)\n3. Replace hardcoded strings with translation function calls\n\nSkip technical strings like CSS classes, data-testid, or developer-only content."
+      }
+    }
+  ]
+}

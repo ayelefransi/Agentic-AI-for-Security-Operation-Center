@@ -6,56 +6,45 @@ import Link from 'next/link';
 import { Activity, AlertTriangle, Shield, Clock, ChevronRight, Search } from 'lucide-react';
 import MetricCard from './components/MetricCard';
 import SeverityBadge from './components/SeverityBadge';
+import { fetchStats, fetchIncidents, type Stats, type Incident } from './lib/api';
 import styles from './page.module.css';
 
-interface Stats {
-  total_alerts: number;
-  open_incidents: number;
-  critical_alerts: number;
-  avg_triage_seconds: number;
-}
-
-interface Incident {
-  id: string;
-  created_at: string;
-  decision: string;
-  decision_reasoning: string;
-  triage?: {
-    severity: string;
-    score: number;
-  };
-  events?: Array<{
-    event_type: string;
-    src_ip?: string;
-    dst_ip?: string;
-  }>;
-  status: string;
-}
-
+/**
+ * Command Center Dashboard - Main entry point for SOC Platform.
+ * 
+ * Displays:
+ * - Real-time SOC metrics (incidents, alerts, triage time)
+ * - Recent security incidents table
+ * - Quick actions (analyze alert)
+ * 
+ * Features:
+ * - Auto-refresh every 15 seconds
+ * - Error handling with retry
+ * - Loading states
+ * 
+ * @returns Dashboard page component
+ */
 export default function CommandCenter() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsRes, incidentsRes] = await Promise.all([
-          fetch('/api/stats'),
-          fetch('/api/incidents')
+        setError(null);
+        const [statsData, incidentsData] = await Promise.all([
+          fetchStats(),
+          fetchIncidents()
         ]);
 
-        if (statsRes.ok) {
-          setStats(await statsRes.json());
-        }
-
-        if (incidentsRes.ok) {
-          const data = await incidentsRes.json();
-          setIncidents(data.incidents || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
+        setStats(statsData);
+        setIncidents(incidentsData.incidents || []);
+      } catch (err: any) {
+        console.error('Failed to fetch data:', err);
+        setError(err.message || 'Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
@@ -65,6 +54,25 @@ export default function CommandCenter() {
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
+          <AlertTriangle size={48} color="var(--color-error)" />
+          <h3 style={{ marginTop: '1rem' }}>Failed to Load Dashboard</h3>
+          <p style={{ color: 'var(--text-muted)' }}>{error}</p>
+          <button 
+            className="btn btn-primary"
+            onClick={() => window.location.reload()}
+            style={{ marginTop: '1rem' }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Auto-Document React Components",
+      "trigger": "PostFileSave",
+      "description": "Automatically adds JSDoc and inline documentation to TypeScript/React files on save",
+      "matcher": "\\.(tsx|ts|jsx|js)$",
+      "action": {
+        "type": "agent",
+        "prompt": "Review the file that was just saved. If it's a React component or TypeScript module that lacks proper JSDoc comments or inline documentation, add comprehensive documentation including:\n- Component/function purpose and description\n- @param descriptions for all parameters\n- @returns description\n- Usage examples where helpful\n- Any important implementation notes\n\nFocus on clarity and completeness. Only add documentation if it's missing or incomplete."
+      }
+    }
+  ]
+}

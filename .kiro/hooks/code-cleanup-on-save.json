@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Code Cleanup on Save",
+      "trigger": "PostFileSave",
+      "description": "Automatically cleans up code quality issues on save",
+      "matcher": "\\.(tsx|ts|jsx|js|py|css)$",
+      "action": {
+        "type": "agent",
+        "prompt": "Review the file that was just saved for code quality issues:\n- Remove unused imports and variables\n- Consolidate duplicate code\n- Simplify overly complex expressions\n- Remove commented-out code blocks\n- Fix inconsistent formatting or naming conventions\n- Improve variable/function names if they're unclear\n\nOnly make changes if there are actual issues to fix. Preserve functionality and don't over-engineer."
+      }
+    }
+  ]
+}
