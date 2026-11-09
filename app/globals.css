@@ -6,48 +6,54 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ─── Background Colors ─── */
-  --bg-primary: #080D0B;
-  --bg-sidebar: #0B1210;
-  --bg-surface: #101915;
-  --bg-elevated: #14201A;
-  --bg-hover: rgba(0, 240, 120, 0.08);
-  --bg-active: rgba(0, 240, 120, 0.12);
+  /* ─── Background Colors (SentinelX-Inspired) ─── */
+  --bg-primary: #090D10;
+  --bg-sidebar: #0B1213;
+  --bg-surface: #0D1117;
+  --bg-card: #101419;
+  --bg-elevated: #111820;
+  --bg-hover: rgba(0, 232, 135, 0.08);
+  --bg-active: rgba(0, 232, 135, 0.12);
   
   /* ─── Border Colors ─── */
-  --border-default: #1D3027;
-  --border-hover: #2A4736;
-  --border-focus: #00F078;
+  --border-default: #27313A;
+  --border-hover: #3A4854;
+  --border-focus: #00E887;
+  --border-subtle: rgba(39, 49, 58, 0.5);
   
   /* ─── Primary Colors ─── */
-  --primary-neon: #00F078;
+  --primary-green: #00E887;
   --primary-soft: #39E58C;
   --primary-dim: #1A6D45;
-  --primary-ghost: rgba(0, 240, 120, 0.1);
+  --primary-ghost: rgba(0, 232, 135, 0.1);
   
   /* ─── Secondary Colors ─── */
   --secondary-cyan: #22D3EE;
-  --secondary-blue: #3B82F6;
-  --secondary-purple: #A855F7;
+  --secondary-blue: #2589D8;
+  --secondary-purple: #8957E5;
   
   /* ─── Severity Colors ─── */
-  --severity-critical: #FF4545;
-  --severity-high: #FF8A3D;
-  --severity-medium: #F5C542;
-  --severity-low: #35C98A;
+  --severity-critical: #EF4444;
+  --severity-high: #F59E0B;
+  --severity-medium: #F59E0B;
+  --severity-low: #22D3EE;
   --severity-info: #22D3EE;
   
   /* ─── Text Colors ─── */
-  --text-primary: #E8F0ED;
-  --text-secondary: #A8B8B2;
-  --text-muted: #6B7B75;
+  --text-primary: #E6EDF3;
+  --text-secondary: #929EAA;
+  --text-muted: #687581;
   --text-disabled: #3A4A44;
   
   /* ─── Status Colors ─── */
-  --status-online: #00F078;
-  --status-offline: #FF4545;
-  --status-warning: #F5C542;
-  --status-unknown: #6B7B75;
+  --status-online: #00E887;
+  --status-offline: #EF4444;
+  --status-warning: #F59E0B;
+  --status-unknown: #687581;
+  
+  /* ─── Legacy Aliases (for backward compatibility) ─── */
+  --primary-neon: var(--primary-green);
+  --neon-green: var(--primary-green);
   
   /* ─── Typography ─── */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
