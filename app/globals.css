@@ -29,6 +29,44 @@
   --color-high: #FF9500;
   --color-medium: #FFD60A;
   --color-low: #00FF41;
+  --color-success: #00FF41;
+  --color-error: #FF3333;
+  
+  /* Neon Colors */
+  --neon-green: #00FF41;
+  --neon-green-dim: #00CC33;
+  --terminal-bg: #0A0E0D;
+  
+  /* Text Colors */
+  --text-primary: #E0E0E0;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  
+  /* Background Colors */
+  --bg-surface: #0C130E;
+  --bg-surface-secondary: #0F1713;
+  --bg-hover: rgba(0, 255, 65, 0.1);
+  
+  /* Border Colors */
+  --border-color: rgba(0, 255, 65, 0.2);
+  --border-hover: rgba(0, 255, 65, 0.4);
+  
+  /* Glass Effect */
+  --glass-bg: rgba(12, 19, 14, 0.7);
+  --glass-bg-hover: rgba(0, 255, 65, 0.1);
+  --glass-bg-active: rgba(0, 255, 65, 0.15);
+  --glass-border: rgba(0, 255, 65, 0.2);
+  --glass-border-hover: rgba(0, 255, 65, 0.4);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --glass-blur: 24px;
+  --glass-saturate: 180%;
+  
+  /* Accent Colors */
+  --accent-primary: #00FF41;
+  --accent-primary-hover: #00CC33;
+  --accent-primary-ghost: rgba(0, 255, 65, 0.1);
+  --accent-primary-glow: rgba(0, 255, 65, 0.4);
   
   /* Neon Glows */
   --glow-primary: 0 0 10px #00FF41, 0 0 20px #00FF41, 0 0 30px #00FF41;
@@ -38,6 +76,10 @@
   /* Typography */
   --font-mono: 'Fira Code', monospace;
   --font-sans: 'Fira Sans', sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
   
   /* Spacing - Dense Dashboard Scale */
   --space-1: 4px;
@@ -52,11 +94,26 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
   
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-slow: 350ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Layout */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 72px;
+  --sidebar-margin: 16px;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 * {
