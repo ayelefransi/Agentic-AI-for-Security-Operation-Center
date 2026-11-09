@@ -1,6 +1,18 @@
 .container {
   max-width: 1600px;
   margin: 0 auto;
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .header {
@@ -8,18 +20,69 @@
   align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 32px;
+  padding: 24px;
+  background: rgba(0, 255, 65, 0.02);
+  border: 1px solid rgba(0, 255, 65, 0.1);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.1), transparent);
+  animation: scan 3s infinite;
+}
+
+@keyframes scan {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 .title {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--neon-green);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 
+    0 0 10px rgba(0, 255, 65, 0.5),
+    0 0 20px rgba(0, 255, 65, 0.3),
+    0 0 30px rgba(0, 255, 65, 0.2);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 
+      0 0 10px rgba(0, 255, 65, 0.5),
+      0 0 20px rgba(0, 255, 65, 0.3),
+      0 0 30px rgba(0, 255, 65, 0.2);
+  }
+  to {
+    text-shadow: 
+      0 0 15px rgba(0, 255, 65, 0.7),
+      0 0 25px rgba(0, 255, 65, 0.5),
+      0 0 40px rgba(0, 255, 65, 0.3);
+  }
 }
 
 .description {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--neon-green);
+  opacity: 0.7;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
 }
 
 .metricsGrid {
@@ -27,10 +90,23 @@
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
+  animation: slideUp 0.8s ease-out 0.2s both;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .section {
   margin-bottom: 32px;
+  animation: slideUp 0.8s ease-out 0.4s both;
 }
 
 .sectionHeader {
@@ -38,12 +114,36 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--neon-green);
+  box-shadow: 0 0 10px var(--neon-green);
+  animation: lineGrow 2s ease-out forwards;
+}
+
+@keyframes lineGrow {
+  to {
+    width: 100%;
+  }
 }
 
 .sectionTitle {
   font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 700;
+  color: var(--neon-green);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: var(--font-mono);
 }
 
 .sectionLink {
@@ -52,12 +152,33 @@
   gap: 4px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--accent-primary);
-  transition: color var(--transition-base);
+  color: var(--neon-green);
+  font-family: var(--font-mono);
+  transition: all var(--transition-base);
+  opacity: 0.8;
+  position: relative;
 }
 
 .sectionLink:hover {
-  color: var(--accent-primary-hover);
+  opacity: 1;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.6);
+  transform: translateX(4px);
+}
+
+.sectionLink:hover::before {
+  content: '>';
+  position: absolute;
+  left: -12px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -74,5 +195,9 @@
 
   .metricsGrid {
     grid-template-columns: 1fr;
+  }
+  
+  .title {
+    font-size: 24px;
   }
 }

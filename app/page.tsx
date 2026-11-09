@@ -7,6 +7,7 @@ import { Activity, AlertTriangle, Shield, Clock, ChevronRight, Search } from 'lu
 import MetricCard from './components/MetricCard';
 import SeverityBadge from './components/SeverityBadge';
 import { fetchStats, fetchIncidents, type Stats, type Incident } from './lib/api';
+import { useTranslation } from './lib/i18n';
 import styles from './page.module.css';
 
 /**
@@ -21,11 +22,14 @@ import styles from './page.module.css';
  * - Auto-refresh every 15 seconds
  * - Error handling with retry
  * - Loading states
+ * - Cyberpunk UI with Matrix-inspired animations
  * 
  * @returns Dashboard page component
  */
 export default function CommandCenter() {
   const router = useRouter();
+  const t = useTranslation('dashboard');
+  const tc = useTranslation('common');
   const [stats, setStats] = useState<Stats | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,14 +64,14 @@ export default function CommandCenter() {
       <div className={styles.container}>
         <div className="card" style={{ padding: '2rem', textAlign: 'center' }}>
           <AlertTriangle size={48} color="var(--color-error)" />
-          <h3 style={{ marginTop: '1rem' }}>Failed to Load Dashboard</h3>
+          <h3 style={{ marginTop: '1rem' }}>{t('failedToLoad')}</h3>
           <p style={{ color: 'var(--text-muted)' }}>{error}</p>
           <button 
             className="btn btn-primary"
             onClick={() => window.location.reload()}
             style={{ marginTop: '1rem' }}
           >
-            Retry
+            {tc('retry')}
           </button>
         </div>
       </div>
@@ -79,40 +83,40 @@ export default function CommandCenter() {
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Command Center</h1>
-          <p className={styles.description}>Security operations overview and active incidents</p>
+          <h1 className={styles.title}>{t('title')}</h1>
+          <p className={styles.description}>{t('description')}</p>
         </div>
         <button 
           className="btn btn-primary"
           onClick={() => router.push('/analyze')}
         >
           <Search size={16} />
-          Analyze Alert
+          {t('analyzeAlert')}
         </button>
       </div>
 
       {/* Metrics */}
       <div className={styles.metricsGrid}>
         <MetricCard
-          title="Active Incidents"
+          title={t('activeIncidents')}
           value={stats?.open_incidents || 0}
           icon={<Activity size={18} />}
           loading={loading}
         />
         <MetricCard
-          title="Critical Alerts"
+          title={t('criticalAlerts')}
           value={stats?.critical_alerts || 0}
           icon={<AlertTriangle size={18} />}
           loading={loading}
         />
         <MetricCard
-          title="Total Alerts"
+          title={t('totalAlerts')}
           value={stats?.total_alerts || 0}
           icon={<Shield size={18} />}
           loading={loading}
         />
         <MetricCard
-          title="Avg Triage Time"
+          title={t('avgTriageTime')}
           value={stats ? `${stats.avg_triage_seconds.toFixed(1)}s` : '0s'}
           icon={<Clock size={18} />}
           loading={loading}
@@ -122,9 +126,9 @@ export default function CommandCenter() {
       {/* Recent Incidents */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Recent Incidents</h2>
+          <h2 className={styles.sectionTitle}>{t('recentIncidents')}</h2>
           <Link href="/incidents" className={styles.sectionLink}>
-            View All <ChevronRight size={16} />
+            {tc('viewAll')} <ChevronRight size={16} />
           </Link>
         </div>
 
@@ -138,15 +142,15 @@ export default function CommandCenter() {
               <div className="empty-state-icon">
                 <Shield size={48} />
               </div>
-              <div className="empty-state-title">No Incidents</div>
+              <div className="empty-state-title">{t('noIncidents')}</div>
               <div className="empty-state-description">
-                No security incidents have been recorded yet.
+                {t('noIncidentsDescription')}
               </div>
               <button 
                 className="btn btn-primary mt-4"
                 onClick={() => router.push('/analyze')}
               >
-                Analyze Your First Alert
+                {t('analyzeFirstAlert')}
               </button>
             </div>
           </div>
@@ -155,13 +159,13 @@ export default function CommandCenter() {
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Verdict</th>
-                  <th>Severity</th>
-                  <th>Event Type</th>
-                  <th>Source</th>
-                  <th>Time</th>
-                  <th>Status</th>
+                  <th>{t('tableHeaders.id')}</th>
+                  <th>{t('tableHeaders.verdict')}</th>
+                  <th>{t('tableHeaders.severity')}</th>
+                  <th>{t('tableHeaders.eventType')}</th>
+                  <th>{t('tableHeaders.source')}</th>
+                  <th>{t('tableHeaders.time')}</th>
+                  <th>{t('tableHeaders.status')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -174,7 +178,7 @@ export default function CommandCenter() {
                       </code>
                     </td>
                     <td style={{ fontWeight: 500 }}>
-                      {incident.decision || 'Pending'}
+                      {incident.decision || t('pending')}
                     </td>
                     <td>
                       {incident.triage?.severity ? (
@@ -184,7 +188,7 @@ export default function CommandCenter() {
                       )}
                     </td>
                     <td>
-                      {incident.events?.[0]?.event_type || 'Unknown'}
+                      {incident.events?.[0]?.event_type || t('unknown')}
                     </td>
                     <td>
                       {incident.events?.[0]?.src_ip ? (
