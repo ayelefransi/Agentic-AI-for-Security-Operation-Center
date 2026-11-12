@@ -39,13 +39,14 @@ def save_incident(incident: IncidentState):
         data_json = incident.model_dump_json()
         with _get_connection() as conn:
             cursor = conn.cursor()
+            status_val = incident.status.value if hasattr(incident.status, "value") else str(incident.status)
             cursor.execute("""
                 INSERT INTO incidents (id, status, created_at, data)
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     status=excluded.status,
                     data=excluded.data
-            """, (incident.id, incident.status.value, incident.created_at, data_json))
+            """, (incident.id, status_val, incident.created_at, data_json))
             conn.commit()
     except Exception as e:
         logger.error(f"Failed to save incident {incident.id}: {e}")

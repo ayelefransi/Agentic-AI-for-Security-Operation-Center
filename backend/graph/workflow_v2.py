@@ -8,6 +8,7 @@ and bounded investigation loops.
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 from typing import Any, Literal
 
@@ -118,7 +119,8 @@ class SOCWorkflowV2:
         Execute the current investigation phase.
         
         Uses the supervisor's plan to determine which agents to run.
-        Executes parallel agents concurrently where possible.
+        Executes parallel agents concurrently where possible,
+        with proper state merging to avoid race conditions.
         """
         logger.info("=== NODE: EXECUTE INVESTIGATION ===")
         
@@ -137,10 +139,7 @@ class SOCWorkflowV2:
         completed = set(step.agent_name for step in state.agent_trace)
         
         # Increment iteration counter
-        if not hasattr(state, 'supervisor_iteration'):
-            state.supervisor_iteration = 1
-        else:
-            state.supervisor_iteration += 1
+        state.supervisor_iteration += 1
         
         logger.info(f"Investigation iteration {state.supervisor_iteration}/{self.max_iterations}")
         
@@ -154,27 +153,39 @@ class SOCWorkflowV2:
                     
                 logger.info(f"Executing parallel group: {', '.join(agents_to_run)}")
                 
-                # Run agents in parallel
-                tasks = []
-                for agent_name in agents_to_run:
-                    agent = self._get_agent(agent_name)
+                if len(agents_to_run) == 1:
+                    # Single agent — no parallelism needed
+                    agent = self._get_agent(agents_to_run[0])
                     if agent:
-                        tasks.append(agent.run(state))
-                        completed.add(agent_name)
+                        state = await agent.run(state)
+                        completed.add(agents_to_run[0])
                     else:
-                        logger.warning(f"Agent '{agent_name}' not implemented yet, skipping")
-                
-                if tasks:
-                    # Execute in parallel and update state sequentially
-                    # (In practice, each agent reads state and appends to it)
-                    results = await asyncio.gather(*tasks, return_exceptions=True)
-                    for result in results:
-                        if isinstance(result, Exception):
-                            logger.error(f"Agent execution failed: {result}")
-                        elif isinstance(result, IncidentState):
-                            # Merge results back to state
-                            # Since agents append to lists, we can just use the last result
-                            state = result
+                        logger.warning(f"Agent '{agents_to_run[0]}' not implemented yet, skipping")
+                else:
+                    # Multiple agents — run in parallel with isolated state copies,
+                    # then merge results back to avoid race conditions
+                    tasks = []
+                    agent_names = []
+                    for agent_name in agents_to_run:
+                        agent = self._get_agent(agent_name)
+                        if agent:
+                            # Each agent gets its own copy of state to avoid races
+                            state_copy = state.model_copy(deep=True)
+                            tasks.append(agent.run(state_copy))
+                            agent_names.append(agent_name)
+                            completed.add(agent_name)
+                        else:
+                            logger.warning(f"Agent '{agent_name}' not implemented yet, skipping")
+                    
+                    if tasks:
+                        results = await asyncio.gather(*tasks, return_exceptions=True)
+                        
+                        # Merge results from all parallel agents into the main state
+                        for i, result in enumerate(results):
+                            if isinstance(result, Exception):
+                                logger.error(f"Agent '{agent_names[i]}' execution failed: {result}")
+                            elif isinstance(result, IncidentState):
+                                state = self._merge_parallel_result(state, result, agent_names[i])
         else:
             # Sequential execution (fallback)
             for agent_name in required_agents:
@@ -190,6 +201,49 @@ class SOCWorkflowV2:
                     logger.warning(f"Agent '{agent_name}' not implemented yet, skipping")
         
         return state
+
+    def _merge_parallel_result(self, main_state: IncidentState, result: IncidentState, agent_name: str) -> IncidentState:
+        """
+        Merge results from a parallel agent execution back into the main state.
+        
+        Each agent appends to specific list fields (enrichments, mitre_mappings, agent_trace, etc.).
+        We merge by taking the NEW items that were added by the agent.
+        """
+        # Merge enrichments (enrichment agent)
+        existing_ioc_keys = {f"{e.ioc.type.value}:{e.ioc.value}" for e in main_state.enrichments}
+        for enr in result.enrichments:
+            key = f"{enr.ioc.type.value}:{enr.ioc.value}"
+            if key not in existing_ioc_keys:
+                main_state.enrichments.append(enr)
+                existing_ioc_keys.add(key)
+        
+        # Merge MITRE mappings
+        existing_mitre_keys = {f"{m.technique_id}" for m in main_state.mitre_mappings}
+        for mapping in result.mitre_mappings:
+            if mapping.technique_id not in existing_mitre_keys:
+                main_state.mitre_mappings.append(mapping)
+                existing_mitre_keys.add(mapping.technique_id)
+        
+        # Merge agent trace (take new steps)
+        existing_trace_count = len(main_state.agent_trace)
+        for step in result.agent_trace[existing_trace_count:]:
+            main_state.agent_trace.append(step)
+        
+        # Merge triage (take if main doesn't have one)
+        if result.triage and not main_state.triage:
+            main_state.triage = result.triage
+        
+        # Merge decision (take if main doesn't have one)
+        if result.decision and not main_state.decision:
+            main_state.decision = result.decision
+            main_state.decision_reasoning = result.decision_reasoning
+            main_state.recommended_actions = result.recommended_actions
+        
+        # Merge events (updated IOCs from correlation)
+        if result.events and len(result.events) > 0:
+            main_state.events = result.events
+        
+        return main_state
 
     async def node_supervisor_check(self, state: IncidentState) -> IncidentState:
         """
@@ -241,8 +295,35 @@ class SOCWorkflowV2:
             "reasoning": state.decision_reasoning,
             "evidence": [],
             "confidence_score": state.triage.confidence if state.triage else 0.5,
-            "recommended_action": "\n".join(state.recommended_actions)
+            "recommended_action": "\n".join(state.recommended_actions),
+            "score": state.triage.score if state.triage else 50,
+            "triage_score": state.triage.score if state.triage else 50,
         }
+        
+        # Include IOCs for frontend
+        iocs = []
+        for event in state.events:
+            for ioc in event.extracted_iocs:
+                enrichment = None
+                for enr in state.enrichments:
+                    if enr.ioc.value == ioc.value:
+                        enrichment = enr
+                        break
+                iocs.append({
+                    "type": ioc.type.value,
+                    "value": ioc.value,
+                    "verdict": enrichment.final_verdict.value if enrichment else "unknown"
+                })
+        state.soc_analysis["iocs"] = iocs
+        
+        # Include MITRE mappings for frontend
+        mitre = []
+        for m in state.mitre_mappings:
+            mitre.append({
+                "technique_id": m.technique_id,
+                "technique_name": m.technique_name
+            })
+        state.soc_analysis["mitre_techniques"] = mitre
         
         logger.info(f"Investigation complete: {state.decision}")
         return state

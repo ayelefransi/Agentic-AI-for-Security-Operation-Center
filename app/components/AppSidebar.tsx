@@ -3,110 +3,97 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  Shield,
-  Activity,
-  Search,
-  Database,
-  Network,
-  FileText,
-  Settings,
-  FileCheck,
-  Users,
-  ChevronRight,
-  Circle
+  LayoutDashboard, Shield, Search, Database,
+  Activity, Settings, ChevronLeft, ChevronRight, X,
 } from 'lucide-react';
 import styles from './AppSidebar.module.css';
 
-const navGroups = [
-  {
-    title: 'OVERVIEW',
-    items: [
-      { name: 'Command Center', path: '/', icon: LayoutDashboard },
-    ]
-  },
-  {
-    title: 'OPERATIONS',
-    items: [
-      { name: 'Incidents', path: '/incidents', icon: Shield },
-      { name: 'Investigations', path: '/analyze', icon: Search },
-      { name: 'Threat Intel', path: '/threat-intel', icon: Database },
-    ]
-  },
-  {
-    title: 'ANALYSIS',
-    items: [
-      { name: 'Agent Monitor', path: '/agents', icon: Activity },
-      { name: 'MITRE ATT&CK', path: '/mitre', icon: Network },
-      { name: 'Forensics', path: '/forensics', icon: FileText },
-    ]
-  },
-  {
-    title: 'SYSTEM',
-    items: [
-      { name: 'Settings', path: '/settings', icon: Settings },
-      { name: 'Audit Logs', path: '/audit', icon: FileCheck },
-      { name: 'User Management', path: '/users', icon: Users },
-    ]
-  }
+interface AppSidebarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+const navItems = [
+  { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Incidents', path: '/incidents', icon: Shield },
+  { name: 'Investigations', path: '/analyze', icon: Search },
+  { name: 'Threat intel', path: '/threat-intel', icon: Database },
+  { name: 'Agents', path: '/agents', icon: Activity },
+  { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
-export default function AppSidebar() {
+export default function AppSidebar({
+  collapsed = false,
+  onToggleCollapse,
+  mobileOpen = false,
+  onCloseMobile,
+}: AppSidebarProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) => {
-    if (path === '/') return pathname === '/';
+    if (path === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(path);
   };
 
   return (
-    <aside className={styles.sidebar}>
-      {/* Logo Section */}
-      <div className={styles.logoSection}>
-        <div className={styles.logoIcon}>
-          <Shield size={24} strokeWidth={2.5} />
-        </div>
-        <div className={styles.logoText}>
-          <div className={styles.logoTitle}>NEXUS COMMAND</div>
-          <div className={styles.logoSubtitle}>SECURITY OPERATIONS CENTER</div>
-        </div>
-      </div>
+    <>
+      {mobileOpen && (
+        <div className={styles.mobileBackdrop} onClick={onCloseMobile} />
+      )}
 
-      {/* Navigation */}
-      <nav className={styles.nav}>
-        {navGroups.map((group, idx) => (
-          <div key={idx} className={styles.navGroup}>
-            <div className={styles.navGroupTitle}>{group.title}</div>
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.path);
+      <aside
+        className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${
+          mobileOpen ? styles.mobileOpen : ''
+        }`}
+      >
+        {/* Logo */}
+        <div className={styles.logoSection}>
+          <Link href="/dashboard" className={styles.logoBrand}>
+            <div className={styles.logoIcon}>
+              <Shield size={18} strokeWidth={2.5} />
+            </div>
+            {!collapsed && <span className={styles.logoText}>አውራ AI</span>}
+          </Link>
 
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className={`${styles.navItem} ${active ? styles.active : ''}`}
-                >
-                  <Icon size={18} className={styles.navIcon} strokeWidth={2} />
-                  <span className={styles.navLabel}>{item.name}</span>
-                  {active && <ChevronRight size={16} className={styles.navChevron} />}
-                </Link>
-              );
-            })}
-          </div>
-        ))}
-      </nav>
+          {mobileOpen && (
+            <button onClick={onCloseMobile} className={styles.collapseBtn} aria-label="Close navigation">
+              <X size={18} />
+            </button>
+          )}
 
-      {/* System Status */}
-      <div className={styles.statusSection}>
-        <div className={styles.statusIndicator}>
-          <Circle className={styles.statusDot} size={8} fill="currentColor" />
-          <div className={styles.statusInfo}>
-            <div className={styles.statusLabel}>System Status</div>
-            <div className={styles.statusText}>All Agents Online</div>
-          </div>
+          {onToggleCollapse && !mobileOpen && (
+            <button
+              onClick={onToggleCollapse}
+              className={styles.collapseBtn}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </button>
+          )}
         </div>
-      </div>
-    </aside>
+
+        {/* Navigation — 6 items, no group titles */}
+        <nav className={styles.nav}>
+          {navItems.map(item => {
+            const Icon = item.icon;
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                href={item.path}
+                onClick={onCloseMobile}
+                className={`${styles.navItem} ${active ? styles.active : ''}`}
+              >
+                <Icon size={18} className={styles.navIcon} strokeWidth={1.8} />
+                {!collapsed && <span className={styles.navLabel}>{item.name}</span>}
+                {collapsed && <div className={styles.tooltip}>{item.name}</div>}
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+    </>
   );
 }

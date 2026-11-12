@@ -6,12 +6,13 @@ for all threat intel sources.
 """
 
 import asyncio
+import ipaddress
 import logging
 import time
 from abc import ABC, abstractmethod
 
 from cache import get_cache
-from schemas.schemas import EnrichmentResult, IOC
+from schemas.schemas import EnrichmentResult, IOC, IOCType, Verdict
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,6 @@ logger = logging.getLogger(__name__)
 class ThreatIntelGateway(ABC):
     """Abstract base class for threat intelligence API gateways."""
 
-    # Name of the source (e.g., 'virustotal')
     source_name: str = "base_gateway"
     
     # Rate limit configuration
@@ -73,7 +73,7 @@ class ThreatIntelGateway(ABC):
     async def lookup(self, ioc: IOC) -> EnrichmentResult:
         """
         Public entry point for looking up an IOC.
-        Handles checking supported types, caching, and rate limiting.
+        Handles checking supported types, internal IP resolution, caching, and rate limiting.
         """
         if ioc.type not in self.supported_types:
             return EnrichmentResult(
@@ -81,6 +81,22 @@ class ThreatIntelGateway(ABC):
                 source=self.source_name,
                 error=f"Unsupported IOC type: {ioc.type.value}"
             )
+
+        # RFC1918 / Private IP handling (do not send internal IPs to public threat feeds)
+        if ioc.type == IOCType.IP:
+            try:
+                ip_obj = ipaddress.ip_address(ioc.value)
+                if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_reserved or ip_obj.is_link_local:
+                    return EnrichmentResult(
+                        ioc=ioc,
+                        source=self.source_name,
+                        verdict=Verdict.BENIGN,
+                        confidence=0.85,
+                        tags=["internal-ip", "rfc1918"],
+                        raw_data={"classification": "Internal / RFC 1918 Private Address Space"}
+                    )
+            except ValueError:
+                pass
 
         # 1. Check Cache
         cache = get_cache()

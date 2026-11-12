@@ -59,6 +59,7 @@ async function apiFetch<T>(
 
       const response = await fetch(url, {
         ...fetchOptions,
+        credentials: 'include',
         headers,
       });
 
@@ -132,18 +133,65 @@ export interface AlertAnalysisResponse {
 export interface Incident {
   id: string;
   created_at: string;
-  decision: string;
-  decision_reasoning: string;
+  decision?: string;
+  decision_reasoning?: string;
   triage?: {
     severity: string;
     score: number;
+    confidence?: number;
+    breakdown?: Record<string, number>;
   };
   events?: Array<{
     event_type: string;
     src_ip?: string;
     dst_ip?: string;
+    hostname?: string;
+    user?: string | any;
+    raw_log?: string;
+    extracted_iocs?: Array<{
+      type: string;
+      value: string;
+      context?: string;
+    }>;
   }>;
+  enrichments?: Array<{
+    ioc: {
+      type: string;
+      value: string;
+    };
+    final_verdict: string;
+    final_confidence: number;
+    tags?: string[];
+  }>;
+  mitre_mappings?: Array<{
+    tactic: string;
+    technique_id: string;
+    technique_name: string;
+    confidence: number;
+    evidence?: string;
+  }>;
+  agent_trace?: Array<{
+    agent_name: string;
+    status: string;
+    started_at?: string;
+    completed_at?: string;
+    duration_ms?: number;
+    output_summary?: string;
+    error?: string;
+  }>;
+  raw_alert?: string;
+  report?: string;
   status: string;
+  investigation_plan_summary?: string;
+  supervisor_iteration?: number;
+  supervisor_decision?: any;
+  feedback?: {
+    override_verdict?: string;
+    override_severity?: string;
+    notes?: string;
+    analyst_id?: string;
+    timestamp?: string;
+  };
 }
 
 export interface Stats {
@@ -211,10 +259,247 @@ export async function submitFeedback(
 }
 
 /**
+ * Fetch MITRE ATT&CK heatmap data.
+ */
+export interface MitreHeatmapTechnique {
+  technique_id: string;
+  technique_name: string;
+  tactic: string;
+  count: number;
+  max_confidence: number;
+}
+
+export interface MitreHeatmapResponse {
+  tactics: string[];
+  techniques: MitreHeatmapTechnique[];
+}
+
+export async function fetchMitreHeatmap(): Promise<MitreHeatmapResponse> {
+  return apiFetch<MitreHeatmapResponse>('/mitre-heatmap', {
+    retry: true,
+  });
+}
+
+/**
  * Health check.
  */
 export async function healthCheck(): Promise<{ status: string; model: string }> {
   return apiFetch<{ status: string; model: string }>('/health', {
     retry: true,
   });
+}
+
+// ── Auth Types & Methods ───────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'analyst';
+}
+
+/**
+ * Login with email and password.
+ */
+export async function login(
+  email: string,
+  password: string,
+  remember_me: boolean = false
+): Promise<{ user: AuthUser }> {
+  return apiFetch<{ user: AuthUser }>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, remember_me }),
+  });
+}
+
+/**
+ * Logout and clear session cookie.
+ */
+export async function logout(): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>('/auth/logout', {
+    method: 'POST',
+  });
+}
+
+/**
+ * Get current authenticated user.
+ */
+export async function fetchCurrentUser(): Promise<AuthUser> {
+  return apiFetch<AuthUser>('/auth/me');
+}
+
+/**
+ * Update incident status (acknowledge, escalate, close).
+ */
+export async function updateIncidentStatus(
+  incidentId: string,
+  status: string
+): Promise<{ status: string; incident: Incident }> {
+  return apiFetch(`/incidents/${incidentId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+/**
+ * Fetch agent health status.
+ */
+export interface AgentHealth {
+  name: string;
+  status: 'online' | 'offline' | 'warning';
+  latency_ms: number;
+  last_run: string;
+  last_run_at?: string | null;
+}
+
+export async function fetchAgentHealth(): Promise<{ agents: AgentHealth[] }> {
+  return apiFetch<{ agents: AgentHealth[] }>('/agents/health', {
+    retry: true,
+  });
+}
+
+export interface VolumeBucket {
+  label: string;
+  count: number;
+}
+
+export async function fetchIncidentVolume(
+  range: '24h' | '7d'
+): Promise<{ range: '24h' | '7d'; buckets: VolumeBucket[] }> {
+  return apiFetch<{ range: '24h' | '7d'; buckets: VolumeBucket[] }>(
+    `/incidents/volume?range=${range}`,
+    { retry: true }
+  );
+}
+
+export interface ManagedUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'analyst';
+  status: string;
+}
+
+export async function fetchUsers(): Promise<{ users: ManagedUser[] }> {
+  return apiFetch<{ users: ManagedUser[] }>('/users');
+}
+
+export async function createUser(payload: {
+  email: string;
+  name: string;
+  password: string;
+  role: 'admin' | 'analyst';
+}): Promise<{ user: ManagedUser }> {
+  return apiFetch<{ user: ManagedUser }>('/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateUserRole(
+  userId: string,
+  role: 'admin' | 'analyst'
+): Promise<{ user: ManagedUser }> {
+  return apiFetch<{ user: ManagedUser }>(`/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+}
+
+export async function deleteUser(userId: string): Promise<{ status: string }> {
+  return apiFetch<{ status: string }>(`/users/${userId}`, {
+    method: 'DELETE',
+  });
+}
+
+function parseFilenameFromDisposition(header: string | null, fallbackName: string): string {
+  if (!header) return fallbackName;
+  const utf8Match = header.match(/filename\*=UTF-8''([^;\n]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]).replace(/["/\\]/g, '');
+    } catch {
+      /* fall through to quoted filename */
+    }
+  }
+  const plainMatch = header.match(/filename="?([^";\n]+)"?/i);
+  if (plainMatch?.[1]) {
+    return plainMatch[1].replace(/["/\\]/g, '');
+  }
+  return fallbackName;
+}
+
+/**
+ * Dynamically generate and trigger a browser download of the complete PDF
+ * investigation report for either a persisted incident ID or an ad-hoc payload.
+ */
+export async function downloadIncidentReportPdf(
+  incidentId?: string | null,
+  fallbackPayload?: Record<string, any>
+): Promise<string> {
+  const cleanId = typeof incidentId === 'string' ? incidentId.trim() : '';
+  const url = cleanId
+    ? `${API_BASE_URL}/incidents/${encodeURIComponent(cleanId)}/report.pdf`
+    : `${API_BASE_URL}/reports/pdf`;
+
+  const headers: Record<string, string> = {};
+  if (API_KEY) {
+    headers['Authorization'] = `Bearer ${API_KEY}`;
+  }
+  if (!cleanId) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  let response = await fetch(url, {
+    method: cleanId ? 'GET' : 'POST',
+    credentials: 'include',
+    headers,
+    body: cleanId ? undefined : JSON.stringify(fallbackPayload || {}),
+  });
+
+  if (cleanId && response.status === 404 && fallbackPayload) {
+    const postHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
+    };
+    response = await fetch(`${API_BASE_URL}/reports/pdf`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: postHeaders,
+      body: JSON.stringify({ id: cleanId, ...fallbackPayload }),
+    });
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new APIError(
+      errorData.detail || `Failed to download PDF report (HTTP ${response.status})`,
+      response.status,
+      errorData
+    );
+  }
+
+  const blob = await response.blob();
+  const safeFallback = cleanId
+    ? `awra-soc-report-${cleanId.replace(/[^A-Za-z0-9._-]+/g, '-')}.pdf`
+    : 'awra-soc-report-investigation.pdf';
+  const filename = parseFilenameFromDisposition(
+    response.headers.get('Content-Disposition'),
+    safeFallback
+  );
+
+  const objectUrl = window.URL.createObjectURL(blob);
+  try {
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  } finally {
+    setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+  }
+
+  return filename;
 }

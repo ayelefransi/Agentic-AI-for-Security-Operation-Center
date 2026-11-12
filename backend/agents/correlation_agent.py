@@ -39,5 +39,10 @@ class CorrelationAgent(BaseAgent):
                     if ioc.context and ioc.context not in unique_iocs[key].context:
                         unique_iocs[key].context += f" | {ioc.context}"
 
+        # Write deduplicated IOCs back to the first event
+        # (so enrichment agent processes the consolidated set)
+        if unique_iocs:
+            state.events[0].extracted_iocs = list(unique_iocs.values())
+
         logger.info(f"Correlated {len(state.events)} events down to {len(unique_iocs)} unique IOCs")
         return state

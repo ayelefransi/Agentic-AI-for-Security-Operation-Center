@@ -1,5 +1,5 @@
 /**
- * Simple i18n translation system for NEXUS Command SOC Platform
+ * Simple i18n translation system for አውራ AI SOC Platform
  * 
  * Provides translation functionality with fallback to English.
  * Supports multiple languages and namespace-based organization.

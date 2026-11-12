@@ -7,11 +7,15 @@ Every agent takes and returns validated schemas — no raw dict passing.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 # ── Enums ──────────────────────────────────────────────────────────────────────
@@ -40,8 +44,10 @@ class Severity(str, Enum):
 
 class IncidentStatus(str, Enum):
     OPEN = "open"
+    ACKNOWLEDGED = "acknowledged"
     INVESTIGATING = "investigating"
     ESCALATED = "escalated"
+    CLOSED = "closed"
     CLOSED_FALSE_POSITIVE = "closed_false_positive"
     CLOSED_RESOLVED = "closed_resolved"
 
@@ -73,7 +79,7 @@ class EnrichmentResult(BaseModel):
     tags: list[str] = Field(default_factory=list)
     error: Optional[str] = None
     cached: bool = False
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
 
 
 class IOCEnrichmentSummary(BaseModel):
@@ -108,7 +114,7 @@ class TriageScore(BaseModel):
 class SecurityEvent(BaseModel):
     """Normalized security event — the canonical input to the pipeline."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
     source: str = Field(default="manual", description="Source system (e.g., 'siem', 'edr', 'manual')")
     event_type: str = Field(default="unknown")
     src_ip: Optional[str] = None
@@ -132,14 +138,14 @@ class AnalystFeedback(BaseModel):
     override_verdict: Optional[str] = None
     override_severity: Optional[Severity] = None
     notes: str = ""
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
 
 
 class AgentStepLog(BaseModel):
     """Audit log entry for a single agent execution."""
     agent_name: str
     status: AgentNodeStatus
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=_utc_now)
     completed_at: Optional[datetime] = None
     duration_ms: Optional[float] = None
     input_summary: str = ""
@@ -158,7 +164,7 @@ class IncidentState(BaseModel):
     """
     # Identity
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=_utc_now)
     
     # Input
     raw_alert: str = ""

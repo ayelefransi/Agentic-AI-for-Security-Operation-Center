@@ -11,12 +11,16 @@ import asyncio
 import logging
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from schemas.schemas import AgentNodeStatus, AgentStepLog, IncidentState
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class BaseAgent(ABC):
@@ -45,7 +49,7 @@ class BaseAgent(ABC):
         step = AgentStepLog(
             agent_name=self.name,
             status=AgentNodeStatus.RUNNING,
-            started_at=datetime.utcnow(),
+            started_at=_utc_now(),
         )
         logger.info(f"[{self.name}] Starting execution")
         start = time.monotonic()
@@ -54,14 +58,14 @@ class BaseAgent(ABC):
             state = await self._process(state)
             elapsed = (time.monotonic() - start) * 1000
             step.status = AgentNodeStatus.DONE
-            step.completed_at = datetime.utcnow()
+            step.completed_at = _utc_now()
             step.duration_ms = round(elapsed, 2)
             step.output_summary = f"Completed in {elapsed:.0f}ms"
             logger.info(f"[{self.name}] Done in {elapsed:.0f}ms")
         except Exception as e:
             elapsed = (time.monotonic() - start) * 1000
             step.status = AgentNodeStatus.ERROR
-            step.completed_at = datetime.utcnow()
+            step.completed_at = _utc_now()
             step.duration_ms = round(elapsed, 2)
             step.error = str(e)
             logger.error(f"[{self.name}] Error: {e}", exc_info=True)

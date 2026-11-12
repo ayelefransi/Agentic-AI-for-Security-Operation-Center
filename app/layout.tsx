@@ -1,37 +1,18 @@
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import './globals.css';
-import { ThemeProvider } from './contexts/ThemeContext';
-import LayoutShell from './components/LayoutShell';
+import AppShell from './components/AppShell';
 import ErrorBoundary from './components/ErrorBoundary';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
-  display: 'swap',
-});
-
 export const metadata: Metadata = {
-  title: 'NEXUS Command | SOC Platform',
-  description: 'Agentic Threat Intelligence & Orchestration',
+  title: 'አውራ AI | SOC Platform',
+  description: 'Autonomous threat intelligence and incident triage',
 };
 
 /**
- * Root layout component for the NEXUS Command SOC Platform.
- * 
- * Provides:
- * - Global fonts (Inter for UI, JetBrains Mono for code)
- * - Theme provider for light/dark mode
- * - Error boundary for crash recovery
- * - Layout shell with navigation
- * 
- * @param children - Page content to render
+ * Root layout for አውራ AI SOC Platform.
+ * Dark-only theme. Geist typeface. No theme toggle.
  */
 export default function RootLayout({
   children,
@@ -39,12 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className="dark">
+      <body className={`${GeistSans.variable} ${GeistMono.variable}`}>
         <ErrorBoundary>
-          <ThemeProvider>
-            <LayoutShell>{children}</LayoutShell>
-          </ThemeProvider>
+          <AppShell>{children}</AppShell>
         </ErrorBoundary>
       </body>
     </html>

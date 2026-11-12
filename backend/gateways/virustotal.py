@@ -5,6 +5,7 @@ Uses the v3 public API. Free tier is 4 requests per minute, so rate
 limiting is strictly enforced.
 """
 
+import base64
 import logging
 import os
 import httpx
@@ -59,16 +60,18 @@ class VirusTotalGateway(ThreatIntelGateway):
 
         headers = {"x-apikey": self.api_key}
         
-        endpoint_map = {
-            IOCType.IP: f"/ip_addresses/{ioc.value}",
-            IOCType.DOMAIN: f"/domains/{ioc.value}",
-            IOCType.HASH: f"/files/{ioc.value}",
-            # URLs require base64 encoding without padding for VT v3
-            # Implementing URL later if needed, returning error for now to keep it simple
-            IOCType.URL: "", 
-        }
-        
-        endpoint = endpoint_map.get(ioc.type)
+        if ioc.type == IOCType.URL:
+            # URLs require base64 urlsafe encoding without padding for VT v3
+            url_id = base64.urlsafe_b64encode(ioc.value.encode()).decode().rstrip("=")
+            endpoint = f"/urls/{url_id}"
+        else:
+            endpoint_map = {
+                IOCType.IP: f"/ip_addresses/{ioc.value}",
+                IOCType.DOMAIN: f"/domains/{ioc.value}",
+                IOCType.HASH: f"/files/{ioc.value}",
+            }
+            endpoint = endpoint_map.get(ioc.type)
+
         if not endpoint:
             return EnrichmentResult(ioc=ioc, source=self.source_name, error="Unsupported or unimplemented VT type")
 

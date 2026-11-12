@@ -83,7 +83,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               </summary>
               <pre style={{ 
                 fontSize: '12px', 
-                background: '#f5f5f5', 
+                background: 'var(--bg-elevated)', 
                 padding: '1rem',
                 borderRadius: '4px',
                 overflow: 'auto'

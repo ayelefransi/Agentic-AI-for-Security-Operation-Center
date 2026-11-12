@@ -1,7 +1,7 @@
-# NEXUS Command: Autonomous Multi-Agent SOC Platform
+# አውራ AI: Autonomous Multi-Agent SOC Platform
 <img width="1536" height="1024" alt="SOC Agent" src="https://github.com/user-attachments/assets/941a7a14-3661-4ae2-bcbe-81e2a5289518" />
 
-NEXUS Command is an AI-powered Security Operations Center (SOC) platform using **supervisor-controlled multi-agent architecture**. A central Supervisor Agent dynamically orchestrates specialist agents to investigate security threats, adapting investigation depth based on alert type and intermediate findings.
+አውራ AI is an AI-powered Security Operations Center (SOC) platform using **supervisor-controlled multi-agent architecture**. A central Supervisor Agent dynamically orchestrates specialist agents to investigate security threats, adapting investigation depth based on alert type and intermediate findings.
 
 **Version 2.0** introduces intelligent routing, parallel execution, and adaptive investigation loops - transforming the platform from a linear pipeline into an autonomous security intelligence system.
 
@@ -16,7 +16,7 @@ NEXUS Command is an AI-powered Security Operations Center (SOC) platform using *
 
 ## System Architecture
 
-NEXUS Command 2.0 operates on a supervisor-controlled multi-agent workflow powered by LangGraph.
+አውራ AI 2.0 operates on a supervisor-controlled multi-agent workflow powered by LangGraph.
 
 ### High-Level Architecture
 
@@ -202,6 +202,20 @@ npm run dev
 5. **Access the platform:**
 Navigate to `http://localhost:3000`
 
+### Authentication & Login Credentials
+
+The dashboard and protected routes require signing in via `/login` using an `httpOnly` JWT session cookie (`8` hours default, or `30` days with **Remember me**). Accounts lock for `15` minutes after `5` failed login attempts, and logins are IP rate-limited.
+
+By default, the backend seeds two local accounts unless overridden via environment variables:
+
+| Role | Default Email | Default Password | Environment Variables |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@nexus.ai` | `NexusAdmin2026!` | `ADMIN_EMAIL`, `ADMIN_PASSWORD` |
+| **Analyst** | `analyst@nexus.ai` | `NexusAnalyst2026!` | `ANALYST_EMAIL`, `ANALYST_PASSWORD` |
+
+- **Admin access**: Only users with the `admin` role can view and manage users in `/settings` (**User management** tab).
+- **Production overrides**: Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ANALYST_EMAIL`, `ANALYST_PASSWORD`, and `NEXUS_JWT_SECRET` in `.env` before deploying and restart the backend.
+
 ### Testing the Workflow
 
 Test the new supervisor-controlled workflow:
@@ -300,7 +314,7 @@ Response:
 
 ## Contributing
 
-NEXUS Command is under active development. Phase 1 (Supervisor Architecture) is complete.
+አውራ AI is under active development. Phase 1 (Supervisor Architecture) is complete.
 
 **How to contribute:**
 1. Phase 2 agents need implementation (see `backend/agents/`)
@@ -324,3 +338,6 @@ NEXUS Command is under active development. Phase 1 (Supervisor Architecture) is 
 **Version**: 2.0.0 (Phase 1 Complete)  
 **Last Updated**: November 6, 2026  
 **Status**: Production-Ready Core, Additional Agents In Development
+
+Default seeded Admin (admin@nexus.ai / NexusAdmin2026!) 
+Analyst (analyst@nexus.ai / NexusAnalyst2026!) credentials.
