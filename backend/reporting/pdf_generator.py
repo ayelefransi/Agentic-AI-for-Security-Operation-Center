@@ -1,5 +1,5 @@
 """
-Nexus AI SOC — Presentation-ready PDF report generator using ReportLab.
+አውራ AI SOC — Presentation-ready PDF report generator using ReportLab.
 
 Generates a multi-page vector PDF dossier containing:
 - Branded dark cover page with executive metadata and verdict summary
@@ -20,6 +20,7 @@ import datetime as dt
 import io
 import json
 import math
+import os
 import re
 from typing import Any
 from xml.sax.saxutils import escape
@@ -33,9 +34,12 @@ from reportlab.graphics.shapes import (
 )
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.fonts import addMapping
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from reportlab.platypus import (
     BaseDocTemplate,
@@ -50,6 +54,30 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
+
+# ---------------------------------------------------------------------------
+# Font Registration (Ethiopic Unicode for አውራ AI)
+# ---------------------------------------------------------------------------
+
+ETHIOPIC_FONT_NAME = "Helvetica"
+ETHIOPIC_FONT_BOLD = "Helvetica-Bold"
+
+for _reg_path, _bold_path in [
+    ("C:/Windows/Fonts/ebrima.ttf", "C:/Windows/Fonts/ebrimabd.ttf"),
+    ("C:/Windows/Fonts/nyala.ttf", "C:/Windows/Fonts/nyala.ttf"),
+    ("/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf", "/usr/share/fonts/truetype/noto/NotoSansEthiopic-Bold.ttf"),
+]:
+    if os.path.exists(_reg_path):
+        try:
+            pdfmetrics.registerFont(TTFont("AwraUnicode", _reg_path))
+            pdfmetrics.registerFont(TTFont("AwraUnicode-Bold", _bold_path if os.path.exists(_bold_path) else _reg_path))
+            addMapping("AwraUnicode", 0, 0, "AwraUnicode")
+            addMapping("AwraUnicode", 1, 0, "AwraUnicode-Bold")
+            ETHIOPIC_FONT_NAME = "AwraUnicode"
+            ETHIOPIC_FONT_BOLD = "AwraUnicode-Bold"
+            break
+        except Exception:
+            pass
 
 # ---------------------------------------------------------------------------
 # Brand & Semantic Palette
@@ -117,8 +145,6 @@ CONTENT_W = PAGE_W - (2 * MARGIN_X)
 # ---------------------------------------------------------------------------
 
 _UNICODE_REPLACEMENTS: dict[str, str] = {
-    "አውራ AI": "Nexus AI",
-    "አውራ": "Nexus",
     "\u2014": "--",
     "\u2013": "-",
     "\u2018": "'",
@@ -164,6 +190,10 @@ def sanitize_text(value: Any) -> str:
             continue
         code = ord(ch)
         if code < 32:
+            continue
+        if 0x1200 <= code <= 0x139F:
+            # Preserve Ethiopic script (Amharic: አውራ)
+            cleaned_chars.append(ch)
             continue
         try:
             ch.encode("cp1252")
@@ -267,14 +297,14 @@ def _build_styles() -> dict[str, ParagraphStyle]:
     return {
         "cover_eyebrow": ParagraphStyle(
             "CoverEyebrow",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=8.5,
             leading=12,
             textColor=ACCENT_CYAN,
         ),
         "cover_title": ParagraphStyle(
             "CoverTitle",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=26,
             leading=31,
             textColor=WHITE,
@@ -282,7 +312,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "cover_subtitle": ParagraphStyle(
             "CoverSubtitle",
-            fontName="Helvetica",
+            fontName=ETHIOPIC_FONT_NAME,
             fontSize=11,
             leading=16,
             textColor=TEXT_LIGHT_MUTED,
@@ -291,14 +321,14 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "cover_card_label": ParagraphStyle(
             "CoverCardLabel",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=7.5,
             leading=10,
             textColor=TEXT_LIGHT_MUTED,
         ),
         "cover_card_value": ParagraphStyle(
             "CoverCardValue",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=12,
             leading=15,
             textColor=WHITE,
@@ -306,14 +336,14 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "section_eyebrow": ParagraphStyle(
             "SectionEyebrow",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=7.5,
             leading=10,
             textColor=ACCENT_INDIGO_DARK,
         ),
         "section_title": ParagraphStyle(
             "SectionTitle",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=13.5,
             leading=17,
             textColor=INK_DARK,
@@ -321,7 +351,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "sub_heading": ParagraphStyle(
             "SubHeading",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=10.5,
             leading=14,
             textColor=INK_DARK,
@@ -331,7 +361,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "body": ParagraphStyle(
             "Body",
-            fontName="Helvetica",
+            fontName=ETHIOPIC_FONT_NAME,
             fontSize=9,
             leading=13.5,
             textColor=TEXT_PRIMARY,
@@ -340,7 +370,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "body_bold": ParagraphStyle(
             "BodyBold",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=9,
             leading=13.5,
             textColor=INK_DARK,
@@ -348,7 +378,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "muted": ParagraphStyle(
             "Muted",
-            fontName="Helvetica",
+            fontName=ETHIOPIC_FONT_NAME,
             fontSize=8,
             leading=11,
             textColor=TEXT_MUTED,
@@ -356,14 +386,14 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "kpi_label": ParagraphStyle(
             "KpiLabel",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=7.2,
             leading=9.5,
             textColor=TEXT_MUTED,
         ),
         "kpi_value": ParagraphStyle(
             "KpiValue",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=13,
             leading=16,
             textColor=INK_DARK,
@@ -371,14 +401,14 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "table_header": ParagraphStyle(
             "TableHeader",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=7.8,
             leading=10,
             textColor=WHITE,
         ),
         "table_cell": ParagraphStyle(
             "TableCell",
-            fontName="Helvetica",
+            fontName=ETHIOPIC_FONT_NAME,
             fontSize=8,
             leading=11,
             textColor=TEXT_PRIMARY,
@@ -402,7 +432,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "callout_title": ParagraphStyle(
             "CalloutTitle",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=9,
             leading=12,
             textColor=INK_DARK,
@@ -410,7 +440,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "bullet": ParagraphStyle(
             "BulletItem",
-            fontName="Helvetica",
+            fontName=ETHIOPIC_FONT_NAME,
             fontSize=9,
             leading=13.2,
             textColor=TEXT_PRIMARY,
@@ -421,7 +451,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "md_h1": ParagraphStyle(
             "MdH1",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=12.5,
             leading=16,
             textColor=INK_DARK,
@@ -431,7 +461,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "md_h2": ParagraphStyle(
             "MdH2",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=11,
             leading=14.5,
             textColor=ACCENT_INDIGO_DARK,
@@ -441,7 +471,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "md_h3": ParagraphStyle(
             "MdH3",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=9.5,
             leading=13,
             textColor=INK_DARK,
@@ -451,7 +481,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
         ),
         "badge": ParagraphStyle(
             "Badge",
-            fontName="Helvetica-Bold",
+            fontName=ETHIOPIC_FONT_BOLD,
             fontSize=7.8,
             leading=10,
             alignment=TA_CENTER,
@@ -487,7 +517,7 @@ class NumberedCanvas(canvas.Canvas):
 
     def _draw_page_number(self, total_pages: int) -> None:
         self.saveState()
-        self.setFont("Helvetica-Bold", 7.8)
+        self.setFont(ETHIOPIC_FONT_BOLD, 7.8)
         self.setFillColor(TEXT_MUTED)
         self.drawRightString(
             PAGE_W - MARGIN_X,
@@ -1361,10 +1391,10 @@ def _make_cover_on_page(
         canv.drawPath(p, stroke=1, fill=1)
 
         canv.setFillColor(WHITE)
-        canv.setFont("Helvetica-Bold", 12)
-        canv.drawString(sx + 28, PAGE_H - 36, "NEXUS AI")
+        canv.setFont(ETHIOPIC_FONT_BOLD, 12)
+        canv.drawString(sx + 28, PAGE_H - 36, "አውራ AI")
         canv.setFillColor(TEXT_LIGHT_MUTED)
-        canv.setFont("Helvetica", 8)
+        canv.setFont(ETHIOPIC_FONT_NAME, 8)
         canv.drawString(sx + 28, PAGE_H - 48, "Autonomous Security Operations Center")
 
         # Classification & Severity indicator top-right
@@ -1402,10 +1432,10 @@ def _make_content_on_page(incident_id: str, severity: str, generated_str: str) -
         canv.rect(MARGIN_X, header_y + 10, 18, 2.5, stroke=0, fill=1)
 
         canv.setFillColor(INK_DARK)
-        canv.setFont("Helvetica-Bold", 8.2)
-        canv.drawString(MARGIN_X, header_y - 2, "NEXUS AI  |  SOC INVESTIGATION REPORT")
+        canv.setFont(ETHIOPIC_FONT_BOLD, 8.2)
+        canv.drawString(MARGIN_X, header_y - 2, "አውራ AI  |  SOC INVESTIGATION REPORT")
 
-        canv.setFont("Helvetica", 7.8)
+        canv.setFont(ETHIOPIC_FONT_NAME, 7.8)
         canv.setFillColor(TEXT_MUTED)
         canv.drawRightString(
             PAGE_W - MARGIN_X - 68,
@@ -1413,7 +1443,7 @@ def _make_content_on_page(incident_id: str, severity: str, generated_str: str) -
             f"Incident: {incident_id}",
         )
         canv.setFillColor(sev_fg)
-        canv.setFont("Helvetica-Bold", 7.8)
+        canv.setFont(ETHIOPIC_FONT_BOLD, 7.8)
         canv.drawRightString(PAGE_W - MARGIN_X, header_y - 2, f"[{severity.upper()}]")
 
         canv.setStrokeColor(BORDER_SUBTLE)
@@ -1427,11 +1457,11 @@ def _make_content_on_page(incident_id: str, severity: str, generated_str: str) -
         canv.line(MARGIN_X, footer_line_y, PAGE_W - MARGIN_X, footer_line_y)
 
         canv.setFillColor(TEXT_MUTED)
-        canv.setFont("Helvetica", 7.6)
+        canv.setFont(ETHIOPIC_FONT_NAME, 7.6)
         canv.drawString(
             MARGIN_X,
             0.42 * inch,
-            f"Generated {generated_str}  |  Confidential SOC Telemetry",
+            f"Generated {generated_str}  |  አውራ AI Autonomous Security Operations",
         )
         canv.restoreState()
 
@@ -1511,8 +1541,8 @@ def generate_incident_pdf(incident_data: Any) -> bytes:
         rightMargin=MARGIN_X,
         topMargin=MARGIN_TOP,
         bottomMargin=MARGIN_BOTTOM,
-        title=f"Nexus AI SOC Investigation Report - {incident_id}",
-        author="Nexus AI Autonomous SOC Platform",
+        title=f"አውራ AI SOC Investigation Report - {incident_id}",
+        author="አውራ AI Autonomous SOC Platform",
         subject=f"Incident {incident_id} - {decision}",
     )
 
