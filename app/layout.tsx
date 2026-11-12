@@ -6,7 +6,7 @@ import AppShell from './components/AppShell';
 import ErrorBoundary from './components/ErrorBoundary';
 
 export const metadata: Metadata = {
-  title: 'አውራ AI | SOC Platform',
+  title: 'አውራ AI',
   description: 'Autonomous threat intelligence and incident triage',
 };
 

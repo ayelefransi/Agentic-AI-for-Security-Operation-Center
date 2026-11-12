@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to NEXUS Command are documented in this file.
+All notable changes to አውራ AI are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🎉 Major Release: Supervisor-Controlled Multi-Agent Architecture
 
-This release transforms NEXUS Command from a linear agent pipeline into an intelligent, adaptive security investigation platform.
+This release transforms አውራ AI from a linear agent pipeline into an intelligent, adaptive security investigation platform.
 
 ### Added
 

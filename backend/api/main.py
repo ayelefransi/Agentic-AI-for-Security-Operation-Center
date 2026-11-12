@@ -26,9 +26,8 @@ from middleware.security import (
     SecurityHeadersMiddleware,
 )
 from middleware.auth import (
-    APIKey,
-    OptionalAuth,
-    require_permission,
+    Principal,
+    require_principal,
     user_store,
     login_rate_limiter,
     get_current_user,
@@ -48,7 +47,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title=settings.app_name,
     version="2.0.0",
-    description="Autonomous Multi-Agent SOC Platform"
+    description="አውራ AI autonomous multi-agent SOC platform"
 )
 
 # Add security middleware
@@ -271,7 +270,7 @@ except Exception as e:
 @app.post("/api/analyze-alert", response_model=AlertResponse)
 async def analyze_alert(
     request: AlertRequest,
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """
     Analyze a security alert through the multi-agent pipeline.
@@ -376,7 +375,7 @@ def _format_relative(dt: datetime, now: datetime) -> str:
 
 @app.get("/api/incidents")
 async def list_incidents(
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """List all analyzed incidents."""
     incidents = db.list_incidents()
@@ -386,7 +385,7 @@ async def list_incidents(
 @app.get("/api/incidents/volume")
 async def get_incidents_volume(
     window: str = Query("24h", alias="range", pattern="^(24h|7d)$"),
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """Aggregate real incident counts by hour (24h) or day (7d)."""
     incidents = db.list_incidents()
@@ -421,7 +420,7 @@ async def get_incidents_volume(
 @app.get("/api/incidents/{incident_id}")
 async def get_incident(
     incident_id: str,
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """Get full details of a specific incident."""
     incident = db.get_incident(incident_id)
@@ -462,7 +461,7 @@ def _normalize_report_payload(payload: dict[str, Any]) -> dict[str, Any]:
 @app.get("/api/incidents/{incident_id}/report.pdf")
 async def download_incident_report_pdf(
     incident_id: str,
-    api_key: Optional[APIKey] = Depends(OptionalAuth()),
+    principal: Principal = Depends(require_principal),
 ):
     """Generate and download a complete PDF investigation report for a stored incident."""
     incident = db.get_incident(incident_id)
@@ -489,7 +488,7 @@ async def download_incident_report_pdf(
 @app.post("/api/reports/pdf")
 async def generate_adhoc_report_pdf(
     payload: dict[str, Any] = Body(...),
-    api_key: Optional[APIKey] = Depends(OptionalAuth()),
+    principal: Principal = Depends(require_principal),
 ):
     """Generate and download a complete PDF report from a submitted investigation payload."""
     normalized = _normalize_report_payload(payload)
@@ -522,14 +521,14 @@ async def generate_adhoc_report_pdf(
 
 @app.get("/api/mitre-heatmap")
 async def get_mitre_heatmap(
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """Get aggregated MITRE technique hit counts across all incidents."""
     return get_mitre_heatmap_data(db.list_incidents())
 
 @app.get("/api/stats")
 async def get_stats(
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """Get top-level SOC dashboard stats from the canonical incidents store."""
     incidents = db.list_incidents()
@@ -569,7 +568,7 @@ class FeedbackRequest(BaseModel):
 async def submit_feedback(
     incident_id: str,
     request: FeedbackRequest,
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """Submit analyst feedback/override for an incident."""
     incident = db.get_incident(incident_id)
@@ -609,7 +608,7 @@ def health_check():
 async def update_incident_status(
     incident_id: str,
     body: StatusUpdateRequest,
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """Update incident status (acknowledge, escalate, close)."""
     incident = db.get_incident(incident_id)
@@ -623,7 +622,7 @@ async def update_incident_status(
 
 @app.get("/api/agents/health")
 async def get_agents_health(
-    api_key: Optional[APIKey] = Depends(OptionalAuth())
+    principal: Principal = Depends(require_principal)
 ):
     """Return real health status, latest measured latency, and last run time for the 6 core agents."""
     agent_names = [

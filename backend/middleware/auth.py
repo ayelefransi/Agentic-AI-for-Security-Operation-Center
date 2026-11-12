@@ -3,6 +3,7 @@ Authentication and authorization middleware.
 Provides API key management and real bcrypt-hashed user session authentication.
 """
 
+import logging
 import os
 import secrets
 import time
@@ -16,13 +17,40 @@ from fastapi import HTTPException, Security, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
+import config.settings  # noqa: F401  (loads .env into os.environ before secrets are read)
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-JWT_SECRET = os.environ.get("NEXUS_JWT_SECRET", "nexus_soc_production_secret_key_super_secure_32bytes_min")
-SESSION_COOKIE_NAME = "nexus_session"
+logger = logging.getLogger(__name__)
+
+_MIN_SECRET_LENGTH = 32
+
+
+def _load_jwt_secret() -> str:
+    """
+    Read the session-signing secret from the environment.
+
+    AWRA_JWT_SECRET is the canonical name; NEXUS_JWT_SECRET is still accepted so
+    existing deployments keep working. There is deliberately no hardcoded fallback:
+    without a configured secret a random per-process one is used, which keeps the
+    API secure but means sessions do not survive a restart and the Next.js route
+    guard (which needs the same secret) will reject every session.
+    """
+    secret = os.environ.get("AWRA_JWT_SECRET") or os.environ.get("NEXUS_JWT_SECRET")
+    if secret and len(secret) >= _MIN_SECRET_LENGTH:
+        return secret
+    if secret:
+        logger.warning("AWRA_JWT_SECRET is shorter than %d characters; using an ephemeral secret instead.", _MIN_SECRET_LENGTH)
+    else:
+        logger.warning("AWRA_JWT_SECRET is not set; using an ephemeral secret. Sessions will not persist across restarts.")
+    return secrets.token_urlsafe(48)
+
+
+JWT_SECRET = _load_jwt_secret()
+SESSION_COOKIE_NAME = "awra_session"
 
 
 # ── User Model & Auth Store ───────────────────────────────────────────────────
@@ -45,44 +73,28 @@ class UserStore:
         self._seed_default_users()
 
     def _seed_default_users(self):
-        admin_email = os.environ.get("ADMIN_EMAIL", "admin@nexus.ai").lower()
-        admin_pass = os.environ.get("ADMIN_PASSWORD", "NexusAdmin2026!")
-        admin_hash = bcrypt.hashpw(admin_pass.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        """
+        Seed the bootstrap admin and analyst accounts from the environment.
 
-        analyst_email = os.environ.get("ANALYST_EMAIL", "analyst@nexus.ai").lower()
-        analyst_pass = os.environ.get("ANALYST_PASSWORD", "NexusAnalyst2026!")
-        analyst_hash = bcrypt.hashpw(analyst_pass.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-        self._users[admin_email] = User(
-            id="usr_admin_01",
-            email=admin_email,
-            name="Alex Mercer",
-            password_hash=admin_hash,
-            role="admin",
-        )
-        if "admin@awra.ai" not in self._users:
-            self._users["admin@awra.ai"] = User(
-                id="usr_admin_awra",
-                email="admin@awra.ai",
-                name="Alex Mercer",
-                password_hash=admin_hash,
-                role="admin",
-            )
-
-        self._users[analyst_email] = User(
-            id="usr_analyst_01",
-            email=analyst_email,
-            name="Elena Vance",
-            password_hash=analyst_hash,
-            role="analyst",
-        )
-        if "analyst@awra.ai" not in self._users:
-            self._users["analyst@awra.ai"] = User(
-                id="usr_analyst_awra",
-                email="analyst@awra.ai",
-                name="Elena Vance",
-                password_hash=analyst_hash,
-                role="analyst",
+        Passwords are never hardcoded: an account is only created when its
+        *_PASSWORD variable is set, so a fresh deployment has no known credentials.
+        """
+        seeds = [
+            ("usr_admin_01", "ADMIN_EMAIL", "admin@awra.ai", "ADMIN_PASSWORD", "Administrator", "admin"),
+            ("usr_analyst_01", "ANALYST_EMAIL", "analyst@awra.ai", "ANALYST_PASSWORD", "SOC Analyst", "analyst"),
+        ]
+        for user_id, email_var, default_email, password_var, name, role in seeds:
+            password = os.environ.get(password_var)
+            if not password:
+                logger.warning("%s is not set; the %s account was not created.", password_var, role)
+                continue
+            email = os.environ.get(email_var, default_email).strip().lower()
+            self._users[email] = User(
+                id=user_id,
+                email=email,
+                name=name,
+                password_hash=bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8"),
+                role=role,
             )
 
     def authenticate(self, email: str, password: str) -> Tuple[Optional[User], Optional[str]]:
@@ -260,18 +272,23 @@ class APIKey(BaseModel):
 
 
 class APIKeyStore:
-    """In-memory API key store for backwards compatibility."""
+    """
+    In-memory API key store for service-to-service access.
+
+    One key can be provisioned through AWRA_API_KEY; no key is hardcoded.
+    """
 
     def __init__(self):
-        self._keys: dict[str, APIKey] = {
-            "demo_key_12345": APIKey(
-                key="demo_key_12345",
-                name="Demo Key",
+        self._keys: dict[str, APIKey] = {}
+        service_key = os.environ.get("AWRA_API_KEY")
+        if service_key:
+            self._keys[service_key] = APIKey(
+                key=service_key,
+                name="Service Key",
                 created_at=_utc_now(),
                 permissions=["read", "write"],
-                rate_limit=60
+                rate_limit=60,
             )
-        }
 
     def validate_key(self, key: str) -> Optional[APIKey]:
         api_key = self._keys.get(key)
@@ -392,6 +409,32 @@ async def get_current_user(request: Request) -> Optional[User]:
             return user
 
     return None
+
+
+class Principal(BaseModel):
+    """The authenticated caller of a protected endpoint: a signed-in user or a service key."""
+    kind: str  # "user" | "api_key"
+    subject: str
+    role: str
+
+
+async def require_principal(request: Request) -> Principal:
+    """Require a valid session (cookie or bearer JWT) or a valid service API key."""
+    user = await get_current_user(request)
+    if user:
+        return Principal(kind="user", subject=user.email, role=user.role)
+
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        api_key = api_key_store.validate_key(auth_header[7:].strip())
+        if api_key:
+            return Principal(kind="api_key", subject=api_key.name, role="service")
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 async def require_admin_user(request: Request) -> User:

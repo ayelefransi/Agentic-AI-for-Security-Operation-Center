@@ -46,12 +46,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get('nexus_session')?.value;
-  const secret =
-    process.env.NEXUS_JWT_SECRET ||
-    'nexus_soc_production_secret_key_super_secure_32bytes_min';
+  const token = request.cookies.get('awra_session')?.value;
+  // Must match the backend's signing secret. No fallback: without it every session is rejected.
+  const secret = process.env.AWRA_JWT_SECRET || process.env.NEXUS_JWT_SECRET;
 
-  const isAuthenticated = token ? await verifyJwt(token, secret) : false;
+  const isAuthenticated = token && secret ? await verifyJwt(token, secret) : false;
 
   // Signed-in users on / or /login -> dashboard
   if (isAuthenticated && (pathname === '/' || pathname === '/login')) {

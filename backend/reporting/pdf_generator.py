@@ -1370,7 +1370,7 @@ def _make_cover_on_page(
         canv.setFillColor(ACCENT_INDIGO)
         canv.rect(0, 0, 10, PAGE_H, stroke=0, fill=1)
 
-        # Geometric Nexus AI Shield emblem top-left
+        # Geometric አውራ AI shield emblem top-left
         sx, sy = MARGIN_X, PAGE_H - 42
         shield_pts = [
             sx + 10, sy + 20,

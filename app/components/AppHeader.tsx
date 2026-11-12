@@ -70,7 +70,7 @@ export default function AppHeader({ onOpenMobileNav }: AppHeaderProps) {
   const [readIds, setReadIds] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set();
     try {
-      return new Set(JSON.parse(localStorage.getItem('nexus-read-notifs') || '[]'));
+      return new Set(JSON.parse(localStorage.getItem('awra-read-notifs') || '[]'));
     } catch { return new Set(); }
   });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -85,7 +85,7 @@ export default function AppHeader({ onOpenMobileNav }: AppHeaderProps) {
   useEffect(() => {
     fetchCurrentUser()
       .then(setCurrentUser)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Load real notifications from last 5 incidents
@@ -95,7 +95,7 @@ export default function AppHeader({ onOpenMobileNav }: AppHeaderProps) {
         const notifs = incidentsToNotifications(res.incidents || []);
         setNotifications(notifs.map(n => ({ ...n, read: readIds.has(n.id) })));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cmd+K / Ctrl+K
@@ -133,7 +133,7 @@ export default function AppHeader({ onOpenMobileNav }: AppHeaderProps) {
       setTimeout(() => searchInputRef.current?.focus(), 50);
       fetchIncidents()
         .then(res => setLiveIncidents(res.incidents || []))
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [searchOpen]);
 
@@ -148,7 +148,7 @@ export default function AppHeader({ onOpenMobileNav }: AppHeaderProps) {
     const allIds = new Set([...readIds, ...notifications.map(n => n.id)]);
     setReadIds(allIds);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    try { localStorage.setItem('nexus-read-notifs', JSON.stringify([...allIds])); } catch {}
+    try { localStorage.setItem('awra-read-notifs', JSON.stringify([...allIds])); } catch { }
   };
 
   const pageTitle =
@@ -299,7 +299,7 @@ export default function AppHeader({ onOpenMobileNav }: AppHeaderProps) {
                         onClick={() => {
                           const newReadIds = new Set([...readIds, n.id]);
                           setReadIds(newReadIds);
-                          try { localStorage.setItem('nexus-read-notifs', JSON.stringify([...newReadIds])); } catch {}
+                          try { localStorage.setItem('awra-read-notifs', JSON.stringify([...newReadIds])); } catch { }
                           setNotifications(prev =>
                             prev.map(item => item.id === n.id ? { ...item, read: true } : item)
                           );

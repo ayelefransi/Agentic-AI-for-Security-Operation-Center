@@ -1,8 +1,8 @@
-# NEXUS Command 2.0 - Multi-Agent Architecture
+# አውራ AI 2.0 - Multi-Agent Architecture
 
 ## Overview
 
-NEXUS Command 2.0 implements a **supervisor-controlled multi-agent architecture** where a central Supervisor Agent dynamically orchestrates specialist agents based on alert type, investigation requirements, and intermediate findings.
+አውራ AI 2.0 implements a **supervisor-controlled multi-agent architecture** where a central Supervisor Agent dynamically orchestrates specialist agents based on alert type, investigation requirements, and intermediate findings.
 
 This replaces the linear pipeline with intelligent routing, parallel execution, and adaptive investigation depth.
 

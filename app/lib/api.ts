@@ -4,9 +4,8 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-// Optional API key for authenticated endpoints
-// Set this in .env.local as NEXT_PUBLIC_API_KEY if backend requires auth
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+// Requests authenticate with the httpOnly session cookie (credentials: 'include').
+// Never put API keys in NEXT_PUBLIC_* variables: they are bundled into client code.
 
 export class APIError extends Error {
   constructor(
@@ -46,16 +45,10 @@ async function apiFetch<T>(
 
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
-      // Build headers with optional authorization
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...fetchOptions.headers as Record<string, string>,
       };
-
-      // Add API key if available (for endpoints that require auth)
-      if (API_KEY) {
-        headers['Authorization'] = `Bearer ${API_KEY}`;
-      }
 
       const response = await fetch(url, {
         ...fetchOptions,
@@ -66,7 +59,13 @@ async function apiFetch<T>(
       // Handle non-OK responses
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
+
+        // An expired or missing session on a protected endpoint: send the user back to sign in.
+        if (response.status === 401 && typeof window !== 'undefined' && !endpoint.startsWith('/auth/')) {
+          const from = window.location.pathname + window.location.search;
+          window.location.assign(`/login?from=${encodeURIComponent(from)}`);
+        }
+
         throw new APIError(
           errorData.detail || `HTTP ${response.status}: ${response.statusText}`,
           response.status,
@@ -443,9 +442,6 @@ export async function downloadIncidentReportPdf(
     : `${API_BASE_URL}/reports/pdf`;
 
   const headers: Record<string, string> = {};
-  if (API_KEY) {
-    headers['Authorization'] = `Bearer ${API_KEY}`;
-  }
   if (!cleanId) {
     headers['Content-Type'] = 'application/json';
   }
@@ -460,7 +456,6 @@ export async function downloadIncidentReportPdf(
   if (cleanId && response.status === 404 && fallbackPayload) {
     const postHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
     };
     response = await fetch(`${API_BASE_URL}/reports/pdf`, {
       method: 'POST',

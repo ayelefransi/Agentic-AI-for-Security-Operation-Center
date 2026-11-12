@@ -188,8 +188,9 @@ def _sample_incident(incident_id: str = "inc-pdf-test-01") -> IncidentState:
 
 
 @pytest.fixture
-def client():
-    return TestClient(app)
+def client(service_headers):
+    """Test client authenticated with the test service key."""
+    return TestClient(app, headers=service_headers)
 
 
 def test_generate_incident_pdf_contains_all_sections_and_pages():
@@ -228,8 +229,9 @@ def test_generate_incident_pdf_contains_all_sections_and_pages():
     assert "enrichment_agent" in full_text
     assert "secops-lead" in full_text
     assert "Playbook PB-104" in full_text
-    # Non-Latin Amharic word should be normalized cleanly to Nexus AI
-    assert "Nexus AI branding markers" in full_text
+    # Emojis are dropped while the Ethiopic brand name is kept
+    assert "AI branding markers" in full_text
+    assert "🚨" not in full_text
 
 
 def test_get_incident_pdf_endpoint_returns_pdf(client):
@@ -239,7 +241,7 @@ def test_get_incident_pdf_endpoint_returns_pdf(client):
 
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("application/pdf")
-    assert 'filename="nexus-soc-report-inc-api-200.pdf"' in resp.headers.get("content-disposition", "")
+    assert 'filename="awra-soc-report-inc-api-200.pdf"' in resp.headers.get("content-disposition", "")
     assert resp.content.startswith(b"%PDF-")
 
     reader = PdfReader(io.BytesIO(resp.content))

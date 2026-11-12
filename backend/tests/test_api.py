@@ -9,9 +9,9 @@ from api.main import app
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
+def client(service_headers):
+    """Test client authenticated with the test service key."""
+    return TestClient(app, headers=service_headers)
 
 
 @pytest.fixture

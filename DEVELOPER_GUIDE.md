@@ -1,6 +1,6 @@
-# NEXUS Command 2.0 - Developer Guide
+# አውራ AI 2.0 - Developer Guide
 
-Quick reference for developers working on the NEXUS Command platform.
+Quick reference for developers working on the አውራ AI platform.
 
 ## Table of Contents
 

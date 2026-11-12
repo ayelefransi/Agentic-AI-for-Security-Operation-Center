@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,9 +18,14 @@ def _find_env_file() -> str:
     return ".env"  # fallback
 
 
+# Settings below are read through pydantic, but auth secrets and seeded accounts
+# are read from os.environ, so expose .env there too. Real environment variables win.
+load_dotenv(_find_env_file(), override=False)
+
+
 class Settings(BaseSettings):
     # App Settings
-    app_name: str = "አውራ AI SOC"
+    app_name: str = "አውራ AI"
     debug: bool = True
     
     # Core Agent LLM

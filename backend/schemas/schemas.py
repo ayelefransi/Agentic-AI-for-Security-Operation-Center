@@ -1,5 +1,5 @@
 """
-Unified Pydantic v2 schemas for the SOC Agent multi-agent pipeline.
+Unified Pydantic v2 schemas for the አውራ AI multi-agent pipeline.
 
 Every agent takes and returns validated schemas — no raw dict passing.
 """

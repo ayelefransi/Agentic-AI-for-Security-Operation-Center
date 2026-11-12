@@ -37,13 +37,13 @@ export default function AppShell({ children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return localStorage.getItem('nexus-sidebar-collapsed') === 'true';
+    return localStorage.getItem('awra-sidebar-collapsed') === 'true';
   });
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem('nexus-sidebar-collapsed', String(next));
+      localStorage.setItem('awra-sidebar-collapsed', String(next));
       return next;
     });
   }, []);
