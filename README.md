@@ -194,7 +194,16 @@ Start the web application in a second terminal:
 npm run dev
 ```
 
-Open `http://localhost:3000`, sign in with the administrator account from `.env`, and open Investigations to submit an alert. Interactive API documentation is available at `http://localhost:8000/docs` while the backend is running.
+Open `http://localhost:3000` and sign in. The default development credentials from `.env` are:
+
+| Role | Email | Password |
+|---|---|---|
+| Administrator | `admin@awra.ai` | `AwraAdmin2026!` |
+| SOC Analyst | `analyst@awra.ai` | `AwraAnalyst2026!` |
+
+> **Change these credentials before deploying to production.**
+
+Open **Investigations** to submit an alert. Interactive API documentation is available at `http://localhost:8000/docs` while the backend is running.
 
 To exercise the workflow without the web application:
 

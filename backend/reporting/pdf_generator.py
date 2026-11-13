@@ -62,7 +62,11 @@ from reportlab.platypus import (
 ETHIOPIC_FONT_NAME = "Helvetica"
 ETHIOPIC_FONT_BOLD = "Helvetica-Bold"
 
+# Bundled fonts ship inside backend/fonts/ so PDFs render on any platform (incl. Vercel).
+_BUNDLED_FONTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fonts")
+
 for _reg_path, _bold_path in [
+    (os.path.join(_BUNDLED_FONTS_DIR, "ebrima.ttf"), os.path.join(_BUNDLED_FONTS_DIR, "ebrimabd.ttf")),
     ("C:/Windows/Fonts/ebrima.ttf", "C:/Windows/Fonts/ebrimabd.ttf"),
     ("C:/Windows/Fonts/nyala.ttf", "C:/Windows/Fonts/nyala.ttf"),
     ("/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf", "/usr/share/fonts/truetype/noto/NotoSansEthiopic-Bold.ttf"),
