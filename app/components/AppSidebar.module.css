@@ -4,9 +4,9 @@
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(180deg, rgba(11, 30, 34, 0.92), rgba(6, 20, 23, 0.96));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-right: 1px solid var(--border-glass);
   display: flex;
   flex-direction: column;
@@ -40,12 +40,13 @@
 .logoIcon {
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--accent-ghost);
+  border-radius: 9px;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 16px rgba(45, 212, 191, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
+  color: var(--accent-contrast);
   flex-shrink: 0;
 }
 
@@ -91,15 +92,16 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
+  padding: 9px var(--space-3);
   border-radius: var(--radius-control);
   color: var(--text-secondary);
   text-decoration: none;
   font-size: var(--font-size-body);
-  font-weight: 450;
-  transition: all var(--transition-fast);
+  font-weight: 500;
+  transition: background var(--dur-fast), color var(--dur-fast);
   position: relative;
   white-space: nowrap;
+  isolation: isolate;
 }
 
 .navItem:hover {
@@ -107,9 +109,20 @@
   color: var(--text-primary);
 }
 
-.active {
-  background: var(--accent-ghost);
-  color: var(--accent);
+.active,
+.active:hover {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+/* Glides between items (Framer Motion layoutId) */
+.activeIndicator {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius-control);
+  background: linear-gradient(90deg, rgba(45, 212, 191, 0.22), rgba(45, 212, 191, 0.04) 85%);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .active .navIcon {
@@ -119,35 +132,20 @@
 .navIcon {
   flex-shrink: 0;
   color: var(--text-muted);
-  transition: color var(--transition-fast);
+  transition: color var(--dur-fast);
+}
+
+.navItem:hover .navIcon {
+  color: var(--text-secondary);
+}
+
+.active:hover .navIcon {
+  color: var(--accent);
 }
 
 .navLabel {
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Tooltip for collapsed */
-.tooltip {
-  display: none;
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 4px 10px;
-  background: var(--bg-glass-dense);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-caption);
-  color: var(--text-primary);
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 200;
-}
-
-.collapsed .navItem:hover .tooltip {
-  display: block;
 }
 
 .collapsed .navItem {

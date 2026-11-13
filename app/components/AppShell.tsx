@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback, type ReactNode
 import { usePathname } from 'next/navigation';
 import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
+import { PageTransition } from './motion';
 
 /* ── Search context ── */
 interface SearchContextValue {
@@ -63,7 +64,9 @@ export default function AppShell({ children }: AppShellProps) {
         />
         <div className="app-main">
           <AppHeader onOpenMobileNav={() => setMobileOpen(true)} />
-          <main className="app-content">{children}</main>
+          <main className="app-content">
+            <PageTransition routeKey={pathname}>{children}</PageTransition>
+          </main>
         </div>
       </div>
     </SearchContext.Provider>

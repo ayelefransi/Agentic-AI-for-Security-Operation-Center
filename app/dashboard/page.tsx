@@ -1,37 +1,58 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, ArrowRight, ArrowUpRight, ArrowDownRight, CheckCircle2 } from 'lucide-react';
 import {
   fetchStats,
   fetchIncidents,
   fetchAgentHealth,
   fetchIncidentVolume,
+  fetchCurrentUser,
   updateIncidentStatus,
   type Stats,
   type Incident,
   type AgentHealth,
   type VolumeBucket,
 } from '@/app/lib/api';
+import {
+  resolveShiftStart,
+  computeShiftMetrics,
+  attentionQueue,
+  severityOf,
+  formatSeconds,
+  formatWindow,
+  greeting,
+} from '@/app/lib/shiftMetrics';
 import { useSearch } from '@/app/components/AppShell';
 import GlassPanel from '@/app/components/GlassPanel';
-import MetricTile from '@/app/components/MetricTile';
-import DataTable, { type DataTableColumn } from '@/app/components/DataTable';
 import Drawer from '@/app/components/Drawer';
-import StatusDot, { type StatusDotTone } from '@/app/components/StatusDot';
+import StatusDot from '@/app/components/StatusDot';
+import { RevealGroup, Reveal, CountUp, useFlashOnChange, useNewKeys } from '@/app/components/motion';
 import styles from './page.module.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+const QUEUE_LIMIT = 8;
+const SEVERITY_TABS = ['all', 'critical', 'high', 'medium', 'low'] as const;
+type SeverityTab = (typeof SEVERITY_TABS)[number];
+
 function timeAgo(iso: string): string {
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins} min ago`;
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
+}
+
+function updatedAgo(date: Date): string {
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (secs < 30) return 'just now';
+  const mins = Math.floor(secs / 60);
+  return mins < 1 ? `${secs}s ago` : `${mins} min ago`;
 }
 
 function severityClass(sev: string | undefined): string {
@@ -39,7 +60,6 @@ function severityClass(sev: string | undefined): string {
     case 'critical': return styles.sevCritical;
     case 'high': return styles.sevHigh;
     case 'medium': return styles.sevMedium;
-    case 'low': return styles.sevLow;
     default: return styles.sevLow;
   }
 }
@@ -47,30 +67,6 @@ function severityClass(sev: string | undefined): string {
 function severityLabel(sev: string | undefined): string {
   if (!sev) return 'Low';
   return sev.charAt(0).toUpperCase() + sev.slice(1).toLowerCase();
-}
-
-function formatStatus(status: string | undefined): string {
-  if (!status || status === 'open') return 'Open';
-  const clean = status.replace(/_/g, ' ');
-  return clean.charAt(0).toUpperCase() + clean.slice(1);
-}
-
-function statusDotTone(status: string | undefined): StatusDotTone {
-  switch (status?.toLowerCase()) {
-    case 'open': return 'high';
-    case 'escalated': return 'critical';
-    case 'acknowledged':
-    case 'investigating': return 'medium';
-    case 'closed':
-    case 'closed_resolved':
-    case 'closed_false_positive': return 'neutral';
-    default: return 'low';
-  }
-}
-
-function isClosedStatus(status: string | undefined): boolean {
-  const s = status?.toLowerCase();
-  return s === 'closed' || s === 'closed_false_positive' || s === 'closed_resolved';
 }
 
 /** Never render a raw API error payload or stack trace as an AI verdict. */
@@ -86,6 +82,33 @@ function safeVerdict(text: string | undefined): string {
   return trimmed;
 }
 
+/** A short human title for an incident, taken from the alert itself. */
+function incidentHeadline(inc: Incident): string {
+  const raw = (inc.raw_alert || '').trim();
+  if (raw.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const field = ['event', 'title', 'name', 'description', 'alert'].find((k) => typeof parsed[k] === 'string');
+      if (field) return String(parsed[field]).slice(0, 90);
+    } catch {
+      // Not JSON after all; fall through to the line-based title.
+    }
+  }
+  const firstLine = raw.split('\n').find((l) => l.trim())?.trim() || '';
+  const title = firstLine.replace(/^(event|alert|title)\s*:\s*/i, '');
+  if (title && !title.startsWith('{')) return title.slice(0, 90);
+  return inc.events?.[0]?.event_type?.replace(/_/g, ' ') || safeVerdict(inc.decision);
+}
+
+/** "AI · <verdict>, <first clause of the reasoning>" for the queue subline. */
+function aiSummary(inc: Incident): string {
+  const verdict = safeVerdict(inc.decision);
+  const reason = (inc.decision_reasoning || '').split(/(?<=[.!?])\s/)[0]?.trim();
+  if (!reason || /^[\[{]/.test(reason)) return verdict;
+  const clipped = reason.length > 110 ? `${reason.slice(0, 107)}…` : reason;
+  return `${verdict} · ${clipped}`;
+}
+
 function buildFallbackVolume(incidents: Incident[], range: '24h' | '7d'): VolumeBucket[] {
   const count = range === '24h' ? 24 : 7;
   const interval = range === '24h' ? 3600000 : 86400000;
@@ -94,34 +117,128 @@ function buildFallbackVolume(incidents: Incident[], range: '24h' | '7d'): Volume
     label: range === '24h' ? `${count - 1 - idx}h` : `${count - 1 - idx}d`,
     count: 0,
   }));
-
   incidents.forEach((inc) => {
-    const created = new Date(inc.created_at).getTime();
-    const diffIdx = Math.floor((now - created) / interval);
-    if (diffIdx >= 0 && diffIdx < count) {
-      buckets[count - 1 - diffIdx].count += 1;
-    }
+    const diffIdx = Math.floor((now - new Date(inc.created_at).getTime()) / interval);
+    if (diffIdx >= 0 && diffIdx < count) buckets[count - 1 - diffIdx].count += 1;
   });
   return buckets;
 }
 
-function computePeriodComparison(incidents: Incident[], filterFn: (i: Incident) => boolean) {
-  const now = Date.now();
-  const dayMs = 86400000;
-  const current = incidents.filter((i) => {
-    const t = new Date(i.created_at).getTime();
-    return filterFn(i) && now - t <= dayMs;
-  }).length;
-  const previous = incidents.filter((i) => {
-    const t = new Date(i.created_at).getTime();
-    return filterFn(i) && now - t > dayMs && now - t <= dayMs * 2;
-  }).length;
-
-  const delta = current - previous;
-  return { delta };
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  return el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
 }
 
-// ── Component ─────────────────────────────────────────────────────────────
+// ── Pieces ────────────────────────────────────────────────────────────────
+
+interface TileProps {
+  label: string;
+  loading: boolean;
+  hero?: boolean;
+  value: number | null;
+  decimals?: number;
+  suffix?: string;
+  display?: string;
+  sub: React.ReactNode;
+}
+
+function Tile({ label, loading, hero, value, decimals = 0, suffix = '', display, sub }: TileProps) {
+  const flash = useFlashOnChange(display ?? value);
+  return (
+    <div className={`${styles.tile} ${hero ? styles.tileHero : ''} card-lift`}>
+      <div className={styles.tileLabel}>{label}</div>
+      {loading ? (
+        <div className={`${styles.tileValueSkeleton} skeleton`} />
+      ) : (
+        <div className={`${styles.tileValue} ${flash}`}>
+          {display ?? (value === null ? '—' : <CountUp value={value} decimals={decimals} suffix={suffix} />)}
+        </div>
+      )}
+      <div className={styles.tileSub}>{loading ? ' ' : sub}</div>
+    </div>
+  );
+}
+
+function NewThisShift({ count }: { count: number }) {
+  if (count === 0) return <span className={styles.subMuted}>No new this shift</span>;
+  return (
+    <span className={styles.deltaUp}>
+      <ArrowUpRight size={12} aria-hidden /> {count} new this shift
+    </span>
+  );
+}
+
+function VolumeChart({ buckets, range }: { buckets: VolumeBucket[]; range: '24h' | '7d' }) {
+  const W = 600;
+  const H = 150;
+  const PAD = 10;
+  const max = Math.max(...buckets.map((b) => b.count), 1);
+  const step = buckets.length > 1 ? W / (buckets.length - 1) : W;
+  const points = buckets.map((b, i) => ({
+    x: i * step,
+    y: H - PAD - (b.count / max) * (H - PAD * 3),
+    b,
+  }));
+  const line = points.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = `${line} L${W},${H} L0,${H} Z`;
+  const peak = points.reduce((a, p) => (p.b.count > a.b.count ? p : a), points[0]);
+  const [hover, setHover] = useState<number | null>(null);
+
+  return (
+    <div className={styles.chartWrap} onMouseLeave={() => setHover(null)}>
+      <svg
+        className={styles.chartSvg}
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Incident volume over the last ${range}; peak ${peak?.b.count ?? 0}`}
+      >
+        <defs>
+          <linearGradient id="volFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="var(--accent)" stopOpacity="0.42" />
+            <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} className={styles.gridLine} />
+        ))}
+        <path key={`a-${range}`} d={area} fill="url(#volFill)" className={styles.chartArea} />
+        <path key={`l-${range}`} d={line} className={styles.chartLine} pathLength={1} vectorEffect="non-scaling-stroke" />
+        {hover !== null && (
+          <line x1={points[hover].x} x2={points[hover].x} y1={0} y2={H} className={styles.hoverLine} />
+        )}
+        {/* Invisible hit areas for hover */}
+        {points.map((p, i) => (
+          <rect
+            key={i}
+            x={p.x - step / 2}
+            y={0}
+            width={step}
+            height={H}
+            fill="transparent"
+            onMouseEnter={() => setHover(i)}
+          />
+        ))}
+      </svg>
+      {peak && peak.b.count > 0 && (
+        <span
+          className={styles.peakDot}
+          style={{ left: `${(peak.x / W) * 100}%`, top: `${(peak.y / H) * 100}%` }}
+          aria-hidden
+        />
+      )}
+      {hover !== null && (
+        <div className={styles.chartTip} style={{ left: `${(points[hover].x / W) * 100}%` }}>
+          <b>{points[hover].b.count}</b> incident{points[hover].b.count === 1 ? '' : 's'}
+          <span>{points[hover].b.label === '0h' || points[hover].b.label === '0d' ? 'now' : `${points[hover].b.label} ago`}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -131,35 +248,30 @@ export default function DashboardPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [agents, setAgents] = useState<AgentHealth[]>([]);
   const [volumeBuckets, setVolumeBuckets] = useState<VolumeBucket[]>([]);
+  const [userName, setUserName] = useState('');
+  const [windowStart, setWindowStart] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [updatedText, setUpdatedText] = useState('Loading…');
+  const [liveTick, setLiveTick] = useState(0);
   const [chartRange, setChartRange] = useState<'24h' | '7d'>('24h');
-  const [sevFilter, setSevFilter] = useState<string>('all');
+  const [sevFilter, setSevFilter] = useState<SeverityTab>('all');
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [cursor, setCursor] = useState(0);
   const [actionLoading, setActionLoading] = useState('');
   const [actionError, setActionError] = useState('');
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const loadVolume = useCallback(
-    async (range: '24h' | '7d', currentIncidents?: Incident[]) => {
-      try {
-        const res = await fetchIncidentVolume(range);
-        setVolumeBuckets(res.buckets || []);
-      } catch {
-        setVolumeBuckets(buildFallbackVolume(currentIncidents ?? incidents, range));
-      }
-    },
-    [incidents]
-  );
+  const lastLoadRef = useRef(0);
+  const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const loadData = useCallback(
     async (isManual = false) => {
       if (isManual) setRefreshing(true);
+      lastLoadRef.current = Date.now();
       try {
         const [statsRes, incidentsRes, agentsRes, volumeRes] = await Promise.all([
           fetchStats(),
@@ -172,11 +284,12 @@ export default function DashboardPage() {
         setIncidents(list);
         setAgents(agentsRes.agents || []);
         setVolumeBuckets(volumeRes?.buckets ?? buildFallbackVolume(list, chartRange));
+        setWindowStart(resolveShiftStart());
         setLastUpdated(new Date());
+        setLiveTick((n) => n + 1);
         setError('');
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Unable to load SOC telemetry';
-        setError(msg);
+        setError(err instanceof Error ? err.message : 'Unable to load SOC telemetry');
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -189,13 +302,17 @@ export default function DashboardPage() {
     loadData();
   }, [loadData]);
 
-  // Auto-refresh every 30s, paused while tab is hidden
+  useEffect(() => {
+    fetchCurrentUser()
+      .then((u) => setUserName(u.name?.trim() || ''))
+      .catch(() => setUserName(''));
+  }, []);
+
+  // Auto-refresh every 30s, paused while the tab is hidden
   useEffect(() => {
     const start = () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        loadData();
-      }, 30000);
+      timerRef.current = setInterval(() => loadData(), 30000);
     };
     const stop = () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -204,12 +321,13 @@ export default function DashboardPage() {
     const handleVisibility = () => {
       if (document.hidden) {
         stop();
-      } else {
-        loadData();
-        start();
+        return;
       }
+      // Rapid tab switching must not hammer the API (and trip its rate limit):
+      // only refetch on return when the data is actually stale.
+      if (Date.now() - lastLoadRef.current > 10_000) loadData();
+      start();
     };
-
     start();
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
@@ -218,63 +336,90 @@ export default function DashboardPage() {
     };
   }, [loadData]);
 
-  // Update "Updated X ago" caption periodically
   useEffect(() => {
     if (!lastUpdated) return;
-    const tick = () => setUpdatedText(`Updated ${timeAgo(lastUpdated.toISOString())}`);
+    const tick = () => setUpdatedText(`Updated ${updatedAgo(lastUpdated)}`);
     tick();
     const id = setInterval(tick, 15000);
     return () => clearInterval(id);
   }, [lastUpdated]);
 
-  // Handle 24h / 7d toggle with API refetch
   const handleRangeChange = async (range: '24h' | '7d') => {
     setChartRange(range);
-    await loadVolume(range);
+    try {
+      const res = await fetchIncidentVolume(range);
+      setVolumeBuckets(res.buckets || []);
+    } catch {
+      setVolumeBuckets(buildFallbackVolume(incidents, range));
+    }
   };
 
-  // Unified counts derived from the same incidents array as the table
-  const openCount = incidents.filter((i) => !isClosedStatus(i.status)).length;
-  const critHighCount = incidents.filter((i) => {
-    const sev = i.triage?.severity?.toLowerCase();
-    return sev === 'critical' || sev === 'high';
-  }).length;
+  // ── Derived data ──
+  const metrics = useMemo(
+    () => (windowStart === null ? null : computeShiftMetrics(incidents, windowStart)),
+    [incidents, windowStart]
+  );
+  const queueAll = useMemo(() => attentionQueue(incidents), [incidents]);
 
-  const avgTriageDisplay = stats
-    ? stats.avg_triage_seconds < 60
-      ? `${Math.round(stats.avg_triage_seconds)}s`
-      : `${(stats.avg_triage_seconds / 60).toFixed(1)}m`
-    : '—';
+  const sevCounts = useMemo(() => {
+    const counts: Record<SeverityTab, number> = { all: queueAll.length, critical: 0, high: 0, medium: 0, low: 0 };
+    queueAll.forEach((i) => {
+      const s = severityOf(i) as SeverityTab;
+      if (s in counts) counts[s] += 1;
+    });
+    return counts;
+  }, [queueAll]);
 
-  // Period-over-period comparisons (last 24h vs previous 24h)
-  const openDelta = computePeriodComparison(incidents, (i) => !isClosedStatus(i.status)).delta;
-  const critHighDelta = computePeriodComparison(incidents, (i) => {
-    const s = i.triage?.severity?.toLowerCase();
-    return s === 'critical' || s === 'high';
-  }).delta;
+  const queue = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return queueAll
+      .filter((i) => sevFilter === 'all' || severityOf(i) === sevFilter)
+      .filter((i) => {
+        if (!q) return true;
+        const source = i.events?.[0]?.src_ip || i.events?.[0]?.hostname || '';
+        return `${i.id} ${i.decision || ''} ${i.raw_alert || ''} ${source}`.toLowerCase().includes(q);
+      })
+      .slice(0, QUEUE_LIMIT);
+  }, [queueAll, sevFilter, searchQuery]);
 
-  const filteredIncidents = incidents.filter((i) => {
-    if (sevFilter !== 'all' && i.triage?.severity?.toLowerCase() !== sevFilter) {
-      return false;
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      const source = i.events?.[0]?.src_ip || i.events?.[0]?.hostname || '';
-      const haystack = `${i.id} ${i.decision || ''} ${i.raw_alert || ''} ${source}`.toLowerCase();
-      if (!haystack.includes(q)) return false;
-    }
-    return true;
-  });
+  const newRows = useNewKeys(queue.map((i) => i.id));
 
-  const sevCounts = {
-    all: incidents.length,
-    critical: incidents.filter((i) => i.triage?.severity?.toLowerCase() === 'critical').length,
-    high: incidents.filter((i) => i.triage?.severity?.toLowerCase() === 'high').length,
-    medium: incidents.filter((i) => i.triage?.severity?.toLowerCase() === 'medium').length,
-    low: incidents.filter((i) => i.triage?.severity?.toLowerCase() === 'low').length,
-  };
+  const sortedAgents = useMemo(
+    () => [...agents].sort((a, b) => Number(a.status === 'online') - Number(b.status === 'online')).slice(0, 6),
+    [agents]
+  );
+  const healthyAgents = agents.filter((a) => a.status === 'online').length;
 
-  const maxBar = Math.max(...volumeBuckets.map((b) => b.count), 1);
+  // Keep the keyboard cursor inside the visible rows
+  useEffect(() => {
+    setCursor((c) => Math.min(c, Math.max(queue.length - 1, 0)));
+  }, [queue.length]);
+
+  const openIncident = useCallback((inc: Incident) => {
+    setActionError('');
+    setSelectedIncident(inc);
+  }, []);
+
+  // J / K to move through the queue, Enter to open
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (selectedIncident || isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!queue.length) return;
+      const key = e.key.toLowerCase();
+      if (key === 'j' || key === 'k') {
+        e.preventDefault();
+        setCursor((c) => {
+          const next = key === 'j' ? Math.min(c + 1, queue.length - 1) : Math.max(c - 1, 0);
+          rowRefs.current[next]?.focus();
+          return next;
+        });
+      } else if (key === 'enter' && document.activeElement === document.body) {
+        openIncident(queue[cursor]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [queue, cursor, selectedIncident, openIncident]);
 
   const handleAction = async (status: string) => {
     if (!selectedIncident) return;
@@ -291,50 +436,6 @@ export default function DashboardPage() {
     }
   };
 
-  const columns: DataTableColumn<Incident>[] = [
-    {
-      key: 'incident',
-      header: 'Incident',
-      render: (inc) => (
-        <div>
-          <div className={styles.incidentTitle}>{safeVerdict(inc.decision)}</div>
-          <div className={styles.incidentId}>{inc.id.substring(0, 12)}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'severity',
-      header: 'Severity',
-      render: (inc) => (
-        <span className={`${styles.sevBadge} ${severityClass(inc.triage?.severity)}`}>
-          {severityLabel(inc.triage?.severity)}
-        </span>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (inc) => (
-        <span className={styles.statusCell}>
-          <StatusDot status={statusDotTone(inc.status)} size="sm" />
-          <span>{formatStatus(inc.status)}</span>
-        </span>
-      ),
-    },
-    {
-      key: 'source',
-      header: 'Source',
-      className: styles.mutedCell,
-      render: (inc) => inc.events?.[0]?.src_ip || inc.events?.[0]?.hostname || '—',
-    },
-    {
-      key: 'detected',
-      header: 'Detected',
-      className: styles.mutedCell,
-      render: (inc) => timeAgo(inc.created_at),
-    },
-  ];
-
   if (error && !stats) {
     return (
       <div className={styles.page}>
@@ -349,233 +450,302 @@ export default function DashboardPage() {
     );
   }
 
+  // ── Tile values ──
+  const triageValue = metrics?.triageWindow ?? stats?.avg_triage_seconds ?? null;
+  const triageIsAllTime = metrics?.triageWindow == null;
+  const triageDelta =
+    metrics?.triageWindow != null && metrics.triagePrevious != null
+      ? metrics.triageWindow - metrics.triagePrevious
+      : null;
+  const autoPct = metrics && metrics.createdInWindow > 0
+    ? Math.round((metrics.autoClosed / metrics.createdInWindow) * 100)
+    : 0;
+
   return (
     <div className={styles.page}>
-      {/* Page title & refresh status */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>Overview</h1>
-        <div className={styles.updatedRow}>
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={() => loadData(true)}
-            aria-label="Refresh dashboard data"
-            title="Refresh now"
-            disabled={refreshing}
-          >
-            <RefreshCw size={12} className={refreshing ? styles.spinning : ''} />
-          </button>
-          <span>{updatedText}</span>
-        </div>
-      </div>
-
-      {/* Row 1: Three Metric Tiles */}
-      <div className={styles.tiles}>
-        <MetricTile
-          loading={loading}
-          label="Open incidents"
-          value={openCount}
-          trend={openDelta > 0 ? 'up' : openDelta < 0 ? 'down' : 'flat'}
-          trendTone={openDelta > 0 ? 'critical' : openDelta < 0 ? 'good' : 'neutral'}
-          changeText={
-            openDelta === 0
-              ? 'No change vs prev 24h'
-              : `${openDelta > 0 ? '+' : ''}${openDelta} vs prev 24h`
-          }
-        />
-        <MetricTile
-          loading={loading}
-          label="Critical and high"
-          value={critHighCount}
-          trend={critHighDelta > 0 ? 'up' : critHighDelta < 0 ? 'down' : 'flat'}
-          trendTone={critHighDelta > 0 ? 'critical' : critHighDelta < 0 ? 'good' : 'neutral'}
-          changeText={
-            critHighDelta === 0
-              ? 'No change vs prev 24h'
-              : `${critHighDelta > 0 ? '+' : ''}${critHighDelta} vs prev 24h`
-          }
-        />
-        <MetricTile
-          loading={loading}
-          label="Average triage time"
-          value={avgTriageDisplay}
-          trend="flat"
-          trendTone="neutral"
-          changeText={incidents.length > 0 ? `Across ${incidents.length} triaged` : 'No triaged alerts yet'}
-        />
-      </div>
-
-      {/* Row 2: Incident Volume Chart (2/3) + Agent Status (1/3) */}
-      <div className={styles.middleRow}>
-        <GlassPanel className={styles.chartPanel}>
-          <div className={styles.chartHeader}>
-            <h2 className={styles.panelTitle}>Incident volume</h2>
-            <div className={styles.toggleGroup} role="group" aria-label="Chart range">
-              <button
-                type="button"
-                className={`${styles.toggleBtn} ${chartRange === '24h' ? styles.toggleActive : ''}`}
-                onClick={() => handleRangeChange('24h')}
-              >
-                24h
-              </button>
-              <button
-                type="button"
-                className={`${styles.toggleBtn} ${chartRange === '7d' ? styles.toggleActive : ''}`}
-                onClick={() => handleRangeChange('7d')}
-              >
-                7d
-              </button>
-            </div>
+      <RevealGroup className={styles.stack}>
+        {/* Greeting */}
+        <Reveal className={styles.header}>
+          <div>
+            <h1 className={styles.title}>
+              {greeting()}
+              {userName ? `, ${userName}` : ''}
+            </h1>
+            <p className={styles.subtitle}>
+              {windowStart
+                ? `Since your last shift · ${formatWindow(windowStart)}`
+                : 'Since your last shift'}
+            </p>
           </div>
+          <div className={styles.liveRow}>
+            <span key={liveTick} className={styles.liveDot} aria-hidden />
+            <span className={styles.liveText}>Live · {updatedText}</span>
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              onClick={() => loadData(true)}
+              aria-label="Refresh dashboard data"
+              title="Refresh now"
+              disabled={refreshing}
+            >
+              <RefreshCw size={14} className={refreshing ? styles.spinning : ''} />
+            </button>
+          </div>
+        </Reveal>
 
-          {loading ? (
-            <div className={styles.chartSkeleton} />
-          ) : volumeBuckets.every((b) => b.count === 0) ? (
-            <div className={styles.chartEmpty}>
-              <p>No incident volume recorded in this window.</p>
-              <button
-                type="button"
-                className={styles.secondaryActionBtn}
-                onClick={() => router.push('/analyze')}
-              >
-                Investigate alert
-              </button>
+        {/* Headline numbers */}
+        <Reveal className={styles.tiles}>
+          <Tile
+            hero
+            loading={loading}
+            label="Open incidents"
+            value={metrics?.openCount ?? null}
+            sub={<NewThisShift count={metrics?.openNew ?? 0} />}
+          />
+          <Tile
+            loading={loading}
+            label="Critical / high"
+            value={metrics?.critHighOpen ?? null}
+            sub={<NewThisShift count={metrics?.critHighNew ?? 0} />}
+          />
+          <Tile
+            loading={loading}
+            label="Avg triage time"
+            value={triageValue === null ? null : triageValue > 120 ? triageValue / 60 : triageValue}
+            decimals={1}
+            suffix={triageValue !== null && triageValue > 120 ? 'm' : 's'}
+            sub={
+              triageIsAllTime ? (
+                <span className={styles.subMuted}>All time · no triage this shift</span>
+              ) : triageDelta === null || Math.abs(triageDelta) < 0.05 ? (
+                <span className={styles.subMuted}>This shift</span>
+              ) : triageDelta < 0 ? (
+                <span className={styles.deltaDown}>
+                  <ArrowDownRight size={12} aria-hidden /> {formatSeconds(Math.abs(triageDelta))} faster
+                </span>
+              ) : (
+                <span className={styles.deltaUp}>
+                  <ArrowUpRight size={12} aria-hidden /> {formatSeconds(triageDelta)} slower
+                </span>
+              )
+            }
+          />
+          <Tile
+            loading={loading}
+            label="AI auto-closed"
+            value={metrics?.createdInWindow ? metrics.autoClosed : null}
+            display={metrics && metrics.createdInWindow === 0 ? '0' : undefined}
+            sub={
+              metrics && metrics.createdInWindow > 0 ? (
+                <span className={styles.subMuted}>
+                  of {metrics.createdInWindow} new · {autoPct}%
+                </span>
+              ) : (
+                <span className={styles.subMuted}>No new alerts this shift</span>
+              )
+            }
+          />
+        </Reveal>
+
+        {/* Volume + agents */}
+        <Reveal className={styles.middleRow}>
+          <GlassPanel className={styles.chartPanel}>
+            <div className={styles.panelHeader}>
+              <h2 className={styles.panelTitle}>Incident volume</h2>
+              <div className={styles.toggleGroup} role="group" aria-label="Chart range">
+                {(['24h', '7d'] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    aria-pressed={chartRange === r}
+                    className={`${styles.toggleBtn} ${chartRange === r ? styles.toggleActive : ''}`}
+                    onClick={() => handleRangeChange(r)}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : (
-            <>
-              <div className={styles.chartSvgWrap}>
-                <svg
-                  className={styles.chartSvg}
-                  viewBox={`0 0 ${volumeBuckets.length * 20} 140`}
-                  preserveAspectRatio="none"
-                  role="img"
-                  aria-label={`Incident volume over ${chartRange}`}
-                >
-                  {volumeBuckets.map((bucket, idx) => {
-                    const barHeight = bucket.count > 0 ? Math.max((bucket.count / maxBar) * 124, 6) : 2;
-                    return (
-                      <rect
-                        key={bucket.label + idx}
-                        x={idx * 20 + 3}
-                        y={136 - barHeight}
-                        width={14}
-                        height={barHeight}
-                        rx={3}
-                        className={bucket.count > 0 ? styles.svgBar : styles.svgBarEmpty}
-                      >
-                        <title>{`${bucket.label}: ${bucket.count} incident${bucket.count === 1 ? '' : 's'}`}</title>
-                      </rect>
-                    );
-                  })}
-                </svg>
-              </div>
-              <div className={styles.chartLabels}>
-                <span>{chartRange === '24h' ? '24h ago' : '7d ago'}</span>
-                <span>Now</span>
-              </div>
-            </>
-          )}
-        </GlassPanel>
-
-        <GlassPanel className={styles.agentPanel}>
-          <h2 className={styles.panelTitle}>Agent status</h2>
-          <div className={styles.agentList}>
             {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className={styles.skeletonRow} />
-              ))
-            ) : agents.length === 0 ? (
-              <div className={styles.agentEmpty}>No agent telemetry available.</div>
+              <div className={`${styles.chartSkeleton} skeleton`} />
+            ) : volumeBuckets.every((b) => b.count === 0) ? (
+              <div className={styles.chartEmpty}>
+                <p>No incidents recorded in the last {chartRange}.</p>
+                <button type="button" className={styles.secondaryActionBtn} onClick={() => router.push('/analyze')}>
+                  Investigate an alert
+                </button>
+              </div>
             ) : (
-              agents.slice(0, 6).map((agent) => {
-                const isExpanded = expandedAgent === agent.name;
-                return (
-                  <div key={agent.name}>
+              <>
+                <VolumeChart buckets={volumeBuckets} range={chartRange} />
+                <div className={styles.chartLabels}>
+                  <span>{chartRange === '24h' ? '24h ago' : '7 days ago'}</span>
+                  <span>Now</span>
+                </div>
+              </>
+            )}
+          </GlassPanel>
+
+          <GlassPanel className={styles.agentPanel}>
+            <div className={styles.panelHeader}>
+              <h2 className={styles.panelTitle}>Agents</h2>
+              {!loading && agents.length > 0 && (
+                <span className={healthyAgents === agents.length ? styles.agentsOk : styles.agentsWarn}>
+                  {healthyAgents} / {agents.length} healthy
+                </span>
+              )}
+            </div>
+            <div className={styles.agentList}>
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => <div key={i} className={`${styles.skeletonRow} skeleton`} />)
+              ) : sortedAgents.length === 0 ? (
+                <div className={styles.agentEmpty}>No agent telemetry available.</div>
+              ) : (
+                sortedAgents.map((agent) => {
+                  const isExpanded = expandedAgent === agent.name;
+                  return (
+                    <div key={agent.name}>
+                      <button
+                        type="button"
+                        className={styles.agentRow}
+                        aria-expanded={isExpanded}
+                        onClick={() => setExpandedAgent(isExpanded ? null : agent.name)}
+                      >
+                        <StatusDot
+                          status={agent.status === 'online' ? 'online' : agent.status === 'warning' ? 'warning' : 'offline'}
+                          label={agent.status}
+                        />
+                        <span className={styles.agentName}>{agent.name}</span>
+                        <span className={styles.agentLatency}>
+                          {agent.latency_ms >= 1000 ? `${(agent.latency_ms / 1000).toFixed(1)}s` : `${agent.latency_ms}ms`}
+                        </span>
+                      </button>
+                      {isExpanded && <div className={styles.agentExpanded}>Last run: {agent.last_run}</div>}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </GlassPanel>
+        </Reveal>
+
+        {/* Needs attention */}
+        <Reveal>
+          <GlassPanel className={styles.queuePanel}>
+            <div className={styles.queueHeader}>
+              <div className={styles.queueTitleRow}>
+                <h2 className={styles.panelTitle}>Needs attention</h2>
+                <span className={styles.queueCount}>{queueAll.length} open</span>
+                <span className={styles.kbdHint} aria-hidden>
+                  <kbd>J</kbd>
+                  <kbd>K</kbd> to move · <kbd>Enter</kbd> to open
+                </span>
+              </div>
+              <div className={styles.severityTabs} role="tablist" aria-label="Filter by severity">
+                {SEVERITY_TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={sevFilter === tab}
+                    className={`${styles.sevTab} ${sevFilter === tab ? styles.sevTabActive : ''}`}
+                    onClick={() => {
+                      setSevFilter(tab);
+                      setCursor(0);
+                    }}
+                  >
+                    {tab === 'all' ? 'All' : severityLabel(tab)} <span className={styles.tabCount}>{sevCounts[tab]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {loading ? (
+              <div className={styles.queueList}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className={`${styles.queueSkeleton} skeleton`} />
+                ))}
+              </div>
+            ) : queue.length === 0 ? (
+              <div className={styles.queueEmpty}>
+                {searchQuery.trim() || sevFilter !== 'all' ? (
+                  <>
+                    <p>
+                      {searchQuery.trim()
+                        ? `No open incidents match "${searchQuery.trim()}".`
+                        : `No open ${sevFilter} incidents.`}
+                    </p>
                     <button
                       type="button"
-                      className={styles.agentRow}
-                      aria-expanded={isExpanded}
-                      onClick={() => setExpandedAgent(isExpanded ? null : agent.name)}
+                      className={styles.secondaryActionBtn}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSevFilter('all');
+                      }}
                     >
-                      <StatusDot
-                        status={
-                          agent.status === 'online'
-                            ? 'online'
-                            : agent.status === 'warning'
-                              ? 'warning'
-                              : 'offline'
-                        }
-                        label={agent.status}
-                      />
-                      <span className={styles.agentName}>{agent.name}</span>
-                      <span className={styles.agentLatency}>{agent.latency_ms}ms</span>
+                      Clear filters
                     </button>
-                    {isExpanded && (
-                      <div className={styles.agentExpanded}>
-                        Last run: {agent.last_run}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={28} className={styles.queueEmptyIcon} aria-hidden />
+                    <p className={styles.queueEmptyTitle}>Queue is clear</p>
+                    <p>Every incident has been handled. New alerts will appear here.</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className={styles.queueList} role="list">
+                {queue.map((inc, idx) => {
+                  const sev = severityOf(inc);
+                  const fresh = newRows.has(inc.id);
+                  const enterClass = fresh
+                    ? sev === 'critical'
+                      ? 'row-new-critical'
+                      : sev === 'high'
+                        ? 'row-new-high'
+                        : 'row-new'
+                    : '';
+                  return (
+                    <button
+                      key={inc.id}
+                      ref={(el) => {
+                        rowRefs.current[idx] = el;
+                      }}
+                      type="button"
+                      role="listitem"
+                      className={`${styles.queueRow} ${idx === cursor ? styles.queueRowCursor : ''} ${enterClass}`}
+                      onClick={() => {
+                        setCursor(idx);
+                        openIncident(inc);
+                      }}
+                      onFocus={() => setCursor(idx)}
+                    >
+                      <span className={`${styles.sevBar} ${styles[`bar_${sev}`] || styles.bar_low}`} aria-hidden />
+                      <span className={styles.queueText}>
+                        <span className={styles.queueTitle}>{incidentHeadline(inc)}</span>
+                        <span className={styles.queueAi}>AI · {aiSummary(inc)}</span>
+                      </span>
+                      <span className={`${styles.sevBadge} ${severityClass(sev)}`}>{severityLabel(sev)}</span>
+                      <span className={styles.queueAge} title={new Date(inc.created_at).toLocaleString()}>
+                        {timeAgo(inc.created_at)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
-          </div>
-        </GlassPanel>
-      </div>
 
-      {/* Row 3: Recent Incidents Table */}
-      <GlassPanel className={styles.tablePanel}>
-        <div className={styles.tableHeader}>
-          <h2 className={styles.panelTitle}>Recent incidents</h2>
-          <div className={styles.severityTabs} role="tablist" aria-label="Filter by severity">
-            {(['all', 'critical', 'high', 'medium', 'low'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={sevFilter === tab}
-                className={`${styles.sevTab} ${sevFilter === tab ? styles.sevTabActive : ''}`}
-                onClick={() => setSevFilter(tab)}
-              >
-                {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)} ({sevCounts[tab]})
-              </button>
-            ))}
-          </div>
-        </div>
+            <div className={styles.queueFooter}>
+              <Link href="/incidents" className={styles.viewAll}>
+                View all incidents <ArrowRight size={14} aria-hidden />
+              </Link>
+            </div>
+          </GlassPanel>
+        </Reveal>
+      </RevealGroup>
 
-        <DataTable
-          columns={columns}
-          rows={filteredIncidents.slice(0, 8)}
-          getRowKey={(inc) => inc.id}
-          onRowClick={(inc) => {
-            setActionError('');
-            setSelectedIncident(inc);
-          }}
-          loading={loading}
-          emptyMessage={
-            searchQuery.trim()
-              ? `No incidents match "${searchQuery.trim()}".`
-              : sevFilter === 'all'
-                ? 'No incidents detected yet.'
-                : `No ${sevFilter} severity incidents.`
-          }
-          emptyActionLabel={
-            searchQuery.trim() || sevFilter !== 'all'
-              ? 'Clear filters'
-              : 'Investigate alert'
-          }
-          onEmptyAction={() => {
-            if (searchQuery.trim() || sevFilter !== 'all') {
-              setSearchQuery('');
-              setSevFilter('all');
-            } else {
-              router.push('/analyze');
-            }
-          }}
-        />
-      </GlassPanel>
-
-      {/* Slide-over Triage Drawer */}
+      {/* Slide-over triage drawer */}
       <Drawer
         open={Boolean(selectedIncident)}
         title="Incident details"
@@ -610,6 +780,9 @@ export default function DashboardPage() {
                   {actionLoading === 'closed' ? 'Saving…' : 'Close'}
                 </button>
               </div>
+              <Link href={`/incidents/${selectedIncident.id}`} className={styles.drawerLink}>
+                Open full investigation <ArrowRight size={14} aria-hidden />
+              </Link>
             </div>
           ) : undefined
         }
@@ -625,9 +798,7 @@ export default function DashboardPage() {
 
             <div className={styles.drawerField}>
               <div className={styles.drawerLabel}>Verdict</div>
-              <div className={styles.drawerValue}>
-                {safeVerdict(selectedIncident.decision)}
-              </div>
+              <div className={styles.drawerValue}>{safeVerdict(selectedIncident.decision)}</div>
             </div>
 
             <div className={styles.drawerField}>
@@ -689,7 +860,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <div className={styles.mutedValue}>Detected {timeAgo(selectedIncident.created_at)}</div>
+                <div className={styles.mutedValue}>Detected {timeAgo(selectedIncident.created_at)} ago</div>
               )}
             </div>
           </div>

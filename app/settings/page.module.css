@@ -138,7 +138,7 @@
 .keyInput:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(108, 131, 255, 0.15);
+  box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.15);
 }
 
 .keyActions {
@@ -210,7 +210,7 @@
   gap: 6px;
   padding: 8px 16px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -412,7 +412,7 @@
   font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--accent);
-  background: rgba(108, 131, 255, 0.12);
+  background: rgba(45, 212, 191, 0.12);
 }
 
 /* ── Users Tab ────────────────────────────────────────────────────────────── */

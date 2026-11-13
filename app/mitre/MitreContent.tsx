@@ -46,7 +46,7 @@ export default function MitreContent() {
 
   const getHeatColor = (count: number) => {
     if (count === 0) return 'transparent';
-    if (count <= 2) return 'rgba(108, 131, 255, 0.15)';
+    if (count <= 2) return 'rgba(45, 212, 191, 0.15)';
     if (count <= 5) return 'rgba(255, 159, 67, 0.2)';
     return 'rgba(255, 92, 108, 0.25)';
   };
@@ -64,7 +64,7 @@ export default function MitreContent() {
               <div className={styles.legendBox} style={{ background: 'rgba(255,255,255,0.05)' }} /> 0
             </div>
             <div className={styles.legendItem}>
-              <div className={styles.legendBox} style={{ background: 'rgba(108, 131, 255, 0.25)' }} /> 1–2
+              <div className={styles.legendBox} style={{ background: 'rgba(45, 212, 191, 0.25)' }} /> 1–2
             </div>
             <div className={styles.legendItem}>
               <div className={styles.legendBox} style={{ background: 'rgba(255, 159, 67, 0.35)' }} /> 3–5

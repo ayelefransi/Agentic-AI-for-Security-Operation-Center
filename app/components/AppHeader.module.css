@@ -5,9 +5,9 @@
   justify-content: space-between;
   padding: 0 var(--space-6);
   border-bottom: 1px solid var(--border-glass);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(6, 20, 23, 0.72);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
   position: sticky;
   top: 0;
   z-index: var(--z-header);
@@ -201,12 +201,13 @@
   width: 30px;
   height: 30px;
   border-radius: var(--radius-pill);
-  background: var(--accent-ghost);
-  border: 1px solid var(--accent-border);
+  background: var(--accent-gradient);
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 3px var(--accent-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
 }
 
 /* Dropdown */
@@ -279,7 +280,7 @@
 .notifItem:hover { background: var(--bg-hover); }
 
 .notifUnread {
-  background: rgba(108, 131, 255, 0.04);
+  background: rgba(45, 212, 191, 0.04);
 }
 
 .notifDot {
@@ -500,4 +501,15 @@
   border-top: 1px solid var(--border-glass);
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* Badge pops in when its count changes (re-keyed in AppHeader) */
+@keyframes badge-pop {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.badge {
+  animation: badge-pop 360ms var(--ease-out) 1;
 }

@@ -274,7 +274,7 @@ export default function AppHeader({ onOpenMobileNav }: AppHeaderProps) {
             >
               <Bell size={18} />
               {unreadCount > 0 && (
-                <span className={styles.badge}>{unreadCount}</span>
+                <span key={unreadCount} className={styles.badge}>{unreadCount}</span>
               )}
             </button>
 

@@ -59,3 +59,6 @@ htmlcov/
 
 # Proprietary fonts must not be committed (license)
 backend/fonts/ebrima*.ttf
+
+# brainstorming mockups
+.superpowers/

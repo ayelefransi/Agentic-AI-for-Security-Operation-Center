@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   LayoutDashboard, Shield, Search, Database,
   Activity, Settings, ChevronLeft, ChevronRight, X,
@@ -31,6 +32,7 @@ export default function AppSidebar({
   onCloseMobile,
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return pathname === '/dashboard';
@@ -85,10 +87,20 @@ export default function AppSidebar({
                 href={item.path}
                 onClick={onCloseMobile}
                 className={`${styles.navItem} ${active ? styles.active : ''}`}
+                aria-current={active ? 'page' : undefined}
+                aria-label={collapsed ? item.name : undefined}
+                title={collapsed ? item.name : undefined}
               >
+                {active && (
+                  <motion.span
+                    layoutId="nav-active"
+                    className={styles.activeIndicator}
+                    transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 40 }}
+                    aria-hidden
+                  />
+                )}
                 <Icon size={18} className={styles.navIcon} strokeWidth={1.8} />
                 {!collapsed && <span className={styles.navLabel}>{item.name}</span>}
-                {collapsed && <div className={styles.tooltip}>{item.name}</div>}
               </Link>
             );
           })}

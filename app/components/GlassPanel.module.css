@@ -1,7 +1,8 @@
 .panel {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(160, 255, 240, 0.035), transparent 40%),
+    var(--bg-glass);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-panel);
   box-shadow: var(--shadow-panel);

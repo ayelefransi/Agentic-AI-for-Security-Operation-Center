@@ -58,7 +58,7 @@
 .launchBtn {
   padding: 8px 16px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -147,7 +147,7 @@
 }
 
 .sessionItemActive {
-  background: rgba(108, 131, 255, 0.08);
+  background: rgba(45, 212, 191, 0.08);
   border-color: var(--accent);
 }
 

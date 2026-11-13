@@ -356,7 +356,7 @@ export default function IncidentDetailPage() {
                   style={{
                     padding: '6px 12px',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(108, 131, 255, 0.08)',
+                    background: 'rgba(45, 212, 191, 0.08)',
                     border: '1px solid var(--border-default)',
                     fontSize: '12px',
                   }}

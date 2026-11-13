@@ -101,7 +101,7 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-body);
   font-weight: 500;
-  color: #ffffff;
+  color: var(--accent-contrast);
   background: var(--accent);
   border: 1px solid var(--accent);
   border-radius: var(--radius-control);
