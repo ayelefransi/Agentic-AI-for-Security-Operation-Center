@@ -83,6 +83,18 @@ for _reg_path, _bold_path in [
         except Exception:
             pass
 
+# Without an Ethiopic font (for example on Vercel, where the font files are not
+# deployed) Amharic glyphs would render as empty boxes, so the brand falls back
+# to its Latin spelling.
+HAS_ETHIOPIC_FONT = ETHIOPIC_FONT_NAME == "AwraUnicode"
+BRAND_AMHARIC = "አውራ AI"
+BRAND_LATIN = "AWRA AI"
+
+
+def brand_name() -> str:
+    """The product name as it can actually be rendered in this PDF."""
+    return BRAND_AMHARIC if HAS_ETHIOPIC_FONT else BRAND_LATIN
+
 # ---------------------------------------------------------------------------
 # Brand & Semantic Palette
 # ---------------------------------------------------------------------------
@@ -186,6 +198,8 @@ def sanitize_text(value: Any) -> str:
     text = value
     for src, dst in _UNICODE_REPLACEMENTS.items():
         text = text.replace(src, dst)
+    if not HAS_ETHIOPIC_FONT:
+        text = text.replace("አውራ", "AWRA")
 
     cleaned_chars: list[str] = []
     for ch in text:
@@ -196,8 +210,10 @@ def sanitize_text(value: Any) -> str:
         if code < 32:
             continue
         if 0x1200 <= code <= 0x139F:
-            # Preserve Ethiopic script (Amharic: አውራ)
-            cleaned_chars.append(ch)
+            # Keep Ethiopic script only when a font can draw it; otherwise drop it
+            # rather than print empty boxes.
+            if HAS_ETHIOPIC_FONT:
+                cleaned_chars.append(ch)
             continue
         try:
             ch.encode("cp1252")
@@ -1396,7 +1412,7 @@ def _make_cover_on_page(
 
         canv.setFillColor(WHITE)
         canv.setFont(ETHIOPIC_FONT_BOLD, 12)
-        canv.drawString(sx + 28, PAGE_H - 36, "አውራ AI")
+        canv.drawString(sx + 28, PAGE_H - 36, brand_name())
         canv.setFillColor(TEXT_LIGHT_MUTED)
         canv.setFont(ETHIOPIC_FONT_NAME, 8)
         canv.drawString(sx + 28, PAGE_H - 48, "Autonomous Security Operations Center")
@@ -1437,7 +1453,7 @@ def _make_content_on_page(incident_id: str, severity: str, generated_str: str) -
 
         canv.setFillColor(INK_DARK)
         canv.setFont(ETHIOPIC_FONT_BOLD, 8.2)
-        canv.drawString(MARGIN_X, header_y - 2, "አውራ AI  |  SOC INVESTIGATION REPORT")
+        canv.drawString(MARGIN_X, header_y - 2, f"{brand_name()}  |  SOC INVESTIGATION REPORT")
 
         canv.setFont(ETHIOPIC_FONT_NAME, 7.8)
         canv.setFillColor(TEXT_MUTED)
@@ -1465,7 +1481,7 @@ def _make_content_on_page(incident_id: str, severity: str, generated_str: str) -
         canv.drawString(
             MARGIN_X,
             0.42 * inch,
-            f"Generated {generated_str}  |  አውራ AI Autonomous Security Operations",
+            f"Generated {generated_str}  |  {brand_name()} Autonomous Security Operations",
         )
         canv.restoreState()
 
@@ -1545,8 +1561,8 @@ def generate_incident_pdf(incident_data: Any) -> bytes:
         rightMargin=MARGIN_X,
         topMargin=MARGIN_TOP,
         bottomMargin=MARGIN_BOTTOM,
-        title=f"አውራ AI SOC Investigation Report - {incident_id}",
-        author="አውራ AI Autonomous SOC Platform",
+        title=f"{brand_name()} SOC Investigation Report - {incident_id}",
+        author=f"{brand_name()} Autonomous SOC Platform",
         subject=f"Incident {incident_id} - {decision}",
     )
 

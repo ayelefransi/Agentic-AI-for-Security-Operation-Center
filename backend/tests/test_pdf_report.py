@@ -286,3 +286,36 @@ def test_post_adhoc_report_pdf_supports_analyze_response_shape(client):
 def test_post_adhoc_report_pdf_rejects_empty_payload(client):
     resp = client.post("/api/reports/pdf", json={})
     assert resp.status_code == 400
+
+
+def _pdf_text(pdf_bytes: bytes) -> str:
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+
+def test_pdf_uses_latin_brand_when_ethiopic_font_is_missing(monkeypatch):
+    """On hosts without the Ethiopic font (e.g. Vercel) the header must read AWRA AI, never empty boxes."""
+    from reporting import pdf_generator
+
+    monkeypatch.setattr(pdf_generator, "HAS_ETHIOPIC_FONT", False)
+    monkeypatch.setattr(pdf_generator, "ETHIOPIC_FONT_NAME", "Helvetica")
+    monkeypatch.setattr(pdf_generator, "ETHIOPIC_FONT_BOLD", "Helvetica-Bold")
+
+    pdf_bytes = generate_incident_pdf(_sample_incident())
+    text = _pdf_text(pdf_bytes)
+    meta = PdfReader(io.BytesIO(pdf_bytes)).metadata
+
+    assert "AWRA AI" in text
+    assert "SOC INVESTIGATION REPORT" in text
+    assert not any(0x1200 <= ord(ch) <= 0x139F for ch in text), "Ethiopic glyphs leaked into a font that cannot draw them"
+    assert meta.title.startswith("AWRA AI")
+
+
+def test_brand_name_follows_font_availability(monkeypatch):
+    from reporting import pdf_generator
+
+    monkeypatch.setattr(pdf_generator, "HAS_ETHIOPIC_FONT", True)
+    assert pdf_generator.brand_name() == "አውራ AI"
+    monkeypatch.setattr(pdf_generator, "HAS_ETHIOPIC_FONT", False)
+    assert pdf_generator.brand_name() == "AWRA AI"
+    assert pdf_generator.sanitize_text("አውራ AI branding") == "AWRA AI branding"
