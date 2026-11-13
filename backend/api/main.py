@@ -63,9 +63,13 @@ allowed_origins = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
 ]
+if os.environ.get("ALLOWED_ORIGINS"):
+    allowed_origins.extend([o.strip() for o in os.environ.get("ALLOWED_ORIGINS").split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -119,7 +123,9 @@ async def login(request: LoginRequest, http_request: Request, response: Response
     max_age = 30 * 24 * 3600 if request.remember_me else 8 * 3600
     is_secure = (
         http_request.url.scheme == "https"
+        or http_request.headers.get("x-forwarded-proto", "") == "https"
         or os.environ.get("COOKIE_SECURE", "").lower() == "true"
+        or bool(os.environ.get("VERCEL"))
     )
 
     response.set_cookie(
@@ -143,9 +149,15 @@ async def login(request: LoginRequest, http_request: Request, response: Response
 
 
 @app.post("/api/auth/logout")
-async def logout(response: Response):
+async def logout(http_request: Request, response: Response):
     """Clear session cookie."""
-    response.delete_cookie(key=SESSION_COOKIE_NAME, path="/")
+    is_secure = (
+        http_request.url.scheme == "https"
+        or http_request.headers.get("x-forwarded-proto", "") == "https"
+        or os.environ.get("COOKIE_SECURE", "").lower() == "true"
+        or bool(os.environ.get("VERCEL"))
+    )
+    response.delete_cookie(key=SESSION_COOKIE_NAME, path="/", secure=is_secure, samesite="lax")
     return {"status": "ok"}
 
 

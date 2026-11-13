@@ -7,9 +7,17 @@ const nextConfig = {
           source: '/api/:path*',
           destination: 'http://127.0.0.1:8000/api/:path*',
         },
-      ]
+      ];
     }
-    return []
+    if (process.env.BACKEND_URL) {
+      return [
+        {
+          source: '/api/:path*',
+          destination: `${process.env.BACKEND_URL.replace(/\/+$/, '')}/api/:path*`,
+        },
+      ];
+    }
+    return [];
   },
   output: 'standalone',
 };

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const PUBLIC_PATHS = ['/', '/login'];
-const STATIC_PREFIXES = ['/_next', '/favicon.ico', '/api'];
+// '/_/' is where Vercel mounts additional services; the backend enforces its own auth there.
+const STATIC_PREFIXES = ['/_next', '/favicon.ico', '/api', '/_/'];
 
 function isStaticOrApi(pathname: string): boolean {
   return STATIC_PREFIXES.some((p) => pathname.startsWith(p));
@@ -64,6 +65,11 @@ export async function middleware(request: NextRequest) {
 
   // Everything else requires auth
   if (!isAuthenticated) {
+    // Only page navigations get a login redirect. Redirecting a POST makes the
+    // browser re-POST to /login, which fails with 405 and hides the real cause.
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return NextResponse.json({ detail: 'Authentication required' }, { status: 401 });
+    }
     const from = pathname + request.nextUrl.search;
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', from);

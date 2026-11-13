@@ -194,14 +194,7 @@ Start the web application in a second terminal:
 npm run dev
 ```
 
-Open `http://localhost:3000` and sign in. The default development credentials from `.env` are:
-
-| Role | Email | Password |
-|---|---|---|
-| Administrator | `admin@awra.ai` | `AwraAdmin2026!` |
-| SOC Analyst | `analyst@awra.ai` | `AwraAnalyst2026!` |
-
-> **Change these credentials before deploying to production.**
+Open `http://localhost:3000` and sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD` from your `.env`. Credentials are never written in this repository.
 
 Open **Investigations** to submit an alert. Interactive API documentation is available at `http://localhost:8000/docs` while the backend is running.
 
@@ -280,7 +273,14 @@ This starts the backend on `http://localhost:8000` and the web application on `h
 
 ### Vercel
 
-`vercel.json` routes `/api/*` to `api/index.py`, which exposes the FastAPI application as a serverless function, and the web application is built as a standard Next.js project. Configure the same environment variables in the Vercel project settings. Note that SQLite on Vercel is ephemeral, so incidents do not persist between deployments.
+The whole platform deploys as one Vercel project: Next.js serves the pages, and `vercel.json` routes `/api/*` to `api/index.py`, a Python function that exposes the FastAPI application. The browser and the API share one origin, so the session cookie works without any CORS setup.
+
+1. Import the repository as a single Next.js project with the root directory set to the repository root. Do not configure a separate backend service.
+2. In **Settings > Environment Variables**, set at least `GROQ_API_KEY`, `AWRA_JWT_SECRET`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` (plus `ANALYST_*` and the threat-intelligence keys if used). Without `ADMIN_PASSWORD` no account exists and every sign-in fails.
+3. Do **not** set `NEXT_PUBLIC_API_URL` or `BACKEND_URL`. The client must call the same-origin `/api`; any other value (for example `/_/backend`) sends sign-in requests to a path the backend does not serve.
+4. Redeploy after changing environment variables, because `NEXT_PUBLIC_*` values and the route guard's secret are fixed at build time.
+
+Limitations on Vercel: SQLite lives in `/tmp` and is lost when a function instance is recycled, and users created in the admin screen exist only in the instance that created them. The bootstrap accounts from the environment are always available.
 
 ## Security considerations
 

@@ -1,4 +1,4 @@
-# Kiro agent and skills folders
+# Agent and skill folders
 .agents/
 .kiro/
 .claude/
@@ -9,15 +9,27 @@ agent/
 *.md
 !README.md
 
-# Test files
+# Frontend test files
 **/*.test.ts
 **/*.test.tsx
 **/*.spec.ts
 **/*.spec.tsx
 
-# Backend
-backend/
-api/index.py
+# Backend: the API itself (backend/ and api/index.py) MUST be uploaded, because
+# vercel.json serves /api/* from the api/index.py Python function. Only local
+# artefacts are excluded here.
+backend/venv/
+backend/tests/
+backend/htmlcov/
+backend/qdrant_data/
+backend/.pytest_cache/
+backend/.coverage
+backend/*.db
+backend/error_log.txt
+backend/test_workflow*.py
+**/__pycache__/
+*.pyc
+htmlcov/
 
 # Git
 .git/
