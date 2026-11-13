@@ -2,7 +2,22 @@
  * API client with error handling, retries, and type safety.
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+/**
+ * Base URL of the FastAPI backend. Defaults to the same-origin `/api`, which is
+ * where both the dev proxy and the Vercel function serve it. An override is
+ * honoured only when it is an absolute http(s) URL or ends in `/api`; anything
+ * else (such as Vercel's `/_/backend` service prefix) points at a path the
+ * backend does not serve and would break sign-in.
+ */
+function resolveApiBaseUrl(): string {
+  const configured = (process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(configured) || configured.endsWith('/api')) {
+    return configured;
+  }
+  return '/api';
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 // Requests authenticate with the httpOnly session cookie (credentials: 'include').
 // Never put API keys in NEXT_PUBLIC_* variables: they are bundled into client code.
